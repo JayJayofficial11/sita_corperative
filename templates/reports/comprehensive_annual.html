@@ -1,0 +1,312 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Comprehensive Annual Report - {{ selected_year }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .report-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border-left: 4px solid #667eea;
+        transition: transform 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .section-title {
+        color: #2c3e50;
+        font-weight: bold;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #667eea;
+    }
+    
+    .monthly-chart {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .table-responsive {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .table thead th {
+        background: #667eea;
+        color: white;
+        border: none;
+        font-weight: 600;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Report Header -->
+    <div class="report-header text-center">
+        <h1><i class="fas fa-chart-line me-3"></i>Comprehensive Annual Report</h1>
+        <h3>{{ selected_year }}</h3>
+        <p class="mb-0">Complete financial and operational overview for {{ selected_year }}</p>
+    </div>
+
+    <!-- Year Filter -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="year" class="form-label">Select Year:</label>
+                            <select name="year" id="year" class="form-select">
+                                {% for year in available_years %}
+                                <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-2"></i>Generate Report
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Member Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h3 class="section-title"><i class="fas fa-users me-2"></i>Member Statistics</h3>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card text-center">
+                <div class="stat-number text-primary">{{ total_members }}</div>
+                <div class="stat-label">Total Members</div>
+                <small class="text-muted">As of {{ year_end|date:"M d, Y" }}</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card text-center">
+                <div class="stat-number text-success">{{ new_members_year }}</div>
+                <div class="stat-label">New Members in {{ selected_year }}</div>
+                <small class="text-muted">Joined during the year</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card text-center">
+                <div class="stat-number text-info">{{ active_members }}</div>
+                <div class="stat-label">Active Members</div>
+                <small class="text-muted">Currently active status</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Overview -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h3 class="section-title"><i class="fas fa-money-bill-wave me-2"></i>Financial Overview</h3>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-number text-success">₦{{ total_savings|floatformat:2 }}</div>
+                <div class="stat-label">Total Savings</div>
+                <small class="text-muted">Member savings balance</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-number text-info">₦{{ annual_deposits|floatformat:2 }}</div>
+                <div class="stat-label">Annual Deposits</div>
+                <small class="text-muted">Total deposits in {{ selected_year }}</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-number text-warning">₦{{ annual_withdrawals|floatformat:2 }}</div>
+                <div class="stat-label">Annual Withdrawals</div>
+                <small class="text-muted">Total withdrawals in {{ selected_year }}</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-number text-primary">₦{{ net_savings|floatformat:2 }}</div>
+                <div class="stat-label">Net Savings</div>
+                <small class="text-muted">Deposits - Withdrawals</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Analysis -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h3 class="section-title"><i class="fas fa-hand-holding-usd me-2"></i>Loan Analysis</h3>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-number text-primary">₦{{ annual_loan_disbursements|floatformat:2 }}</div>
+                <div class="stat-label">Loans Disbursed</div>
+                <small class="text-muted">Total disbursed in {{ selected_year }}</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-number text-success">₦{{ annual_loan_repayments|floatformat:2 }}</div>
+                <div class="stat-label">Loan Repayments</div>
+                <small class="text-muted">Total repaid in {{ selected_year }}</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-number text-warning">₦{{ outstanding_loans|floatformat:2 }}</div>
+                <div class="stat-label">Outstanding Loans</div>
+                <small class="text-muted">Currently outstanding</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-number text-info">₦{{ loan_interest_earned|floatformat:2 }}</div>
+                <div class="stat-label">Interest Earned</div>
+                <small class="text-muted">10% of disbursed loans</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Income Summary -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h3 class="section-title"><i class="fas fa-chart-pie me-2"></i>Income Summary</h3>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card text-center">
+                <div class="stat-number text-success">₦{{ registration_fees|floatformat:2 }}</div>
+                <div class="stat-label">Registration Fees</div>
+                <small class="text-muted">New member fees</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card text-center">
+                <div class="stat-number text-info">₦{{ loan_interest_earned|floatformat:2 }}</div>
+                <div class="stat-label">Loan Interest</div>
+                <small class="text-muted">Interest on loans</small>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card text-center">
+                <div class="stat-number text-primary">₦{{ total_income|floatformat:2 }}</div>
+                <div class="stat-label">Total Income</div>
+                <small class="text-muted">All income sources</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Breakdown -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h3 class="section-title"><i class="fas fa-calendar-alt me-2"></i>Monthly Breakdown - {{ selected_year }}</h3>
+        </div>
+        <div class="col-md-12">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th class="text-end">New Members</th>
+                            <th class="text-end">Deposits</th>
+                            <th class="text-end">Withdrawals</th>
+                            <th class="text-end">Net Savings</th>
+                            <th class="text-end">Loans</th>
+                            <th class="text-end">Repayments</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for month in monthly_data %}
+                        <tr>
+                            <td><strong>{{ month.month_name }}</strong></td>
+                            <td class="text-end">{{ month.new_members }}</td>
+                            <td class="text-end text-success">₦{{ month.deposits|floatformat:2 }}</td>
+                            <td class="text-end text-warning">₦{{ month.withdrawals|floatformat:2 }}</td>
+                            <td class="text-end {% if month.net_savings >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                ₦{{ month.net_savings|floatformat:2 }}
+                            </td>
+                            <td class="text-end text-primary">₦{{ month.loans|floatformat:2 }}</td>
+                            <td class="text-end text-info">₦{{ month.repayments|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-dark">
+                            <td><strong>TOTAL</strong></td>
+                            <td class="text-end"><strong>{{ new_members_year }}</strong></td>
+                            <td class="text-end"><strong>₦{{ annual_deposits|floatformat:2 }}</strong></td>
+                            <td class="text-end"><strong>₦{{ annual_withdrawals|floatformat:2 }}</strong></td>
+                            <td class="text-end"><strong>₦{{ net_savings|floatformat:2 }}</strong></td>
+                            <td class="text-end"><strong>₦{{ annual_loan_disbursements|floatformat:2 }}</strong></td>
+                            <td class="text-end"><strong>₦{{ annual_loan_repayments|floatformat:2 }}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Footer -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-calendar me-2"></i>
+                        Report generated on {{ "now"|date:"F d, Y \a\t g:i A" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-submit form when year changes
+    document.getElementById('year').addEventListener('change', function() {
+        this.form.submit();
+    });
+</script>
+{% endblock %}

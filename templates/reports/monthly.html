@@ -1,0 +1,651 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Monthly Reports - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    Monthly Reports - {{ selected_month|date:"F Y" }}
+                </h5>
+                <div>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#monthModal">
+                        <i class="fas fa-calendar me-1"></i>Change Month
+                    </button>
+                    <button class="btn btn-light btn-sm" onclick="exportReport()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <button class="btn btn-light btn-sm" onclick="printReport()">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <!-- Monthly Overview -->
+                <div class="row mb-4">
+                    <div class="col-md-2">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ new_members }}</h4>
+                                <small>New Members</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ monthly_savings_deposits|floatformat:0 }}</h4>
+                                <small>Savings Deposits</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ monthly_loan_disbursements|floatformat:0 }}</h4>
+                                <small>Loan Disbursements</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ monthly_loan_repayments|floatformat:0 }}</h4>
+                                <small>Loan Repayments</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ monthly_transactions }}</h4>
+                                <small>Transactions</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-secondary text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ active_members }}</h4>
+                                <small>Active Members</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Monthly Performance Chart -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-chart-line me-2"></i>Monthly Performance Trends
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="monthlyChart" height="100"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Detailed Reports Tabs -->
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="monthlyTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="activity-tab" data-bs-toggle="tab" data-bs-target="#monthly-activity" type="button" role="tab">
+                                    <i class="fas fa-activity me-1"></i>Monthly Activity
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="member-tab" data-bs-toggle="tab" data-bs-target="#member-summary" type="button" role="tab">
+                                    <i class="fas fa-users me-1"></i>Member Summary
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="loan-tab" data-bs-toggle="tab" data-bs-target="#loan-summary" type="button" role="tab">
+                                    <i class="fas fa-hand-holding-usd me-1"></i>Loan Summary
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="savings-tab" data-bs-toggle="tab" data-bs-target="#savings-summary" type="button" role="tab">
+                                    <i class="fas fa-piggy-bank me-1"></i>Savings Summary
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="daily-tab" data-bs-toggle="tab" data-bs-target="#daily-breakdown" type="button" role="tab">
+                                    <i class="fas fa-calendar-day me-1"></i>Daily Breakdown
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="monthlyTabContent">
+                            <!-- Monthly Activity -->
+                            <div class="tab-pane fade show active" id="monthly-activity" role="tabpanel">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Activity Type</th>
+                                                <th>Description</th>
+                                                <th>Amount</th>
+                                                <th>Member</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for activity in monthly_activities %}
+                                            <tr>
+                                                <td>{{ activity.date|date:"M d, Y" }}</td>
+                                                <td>
+                                                    <span class="badge bg-{% if activity.type == 'deposit' %}success{% elif activity.type == 'withdrawal' %}warning{% elif activity.type == 'loan' %}info{% else %}secondary{% endif %}">
+                                                        {{ activity.get_type_display }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ activity.description }}</td>
+                                                <td class="text-end">₦{{ activity.amount|floatformat:2 }}</td>
+                                                <td>
+                                                    {% if activity.member %}
+                                                        <a href="{% url 'members:detail' activity.member.id %}" class="text-decoration-none">
+                                                            {{ activity.member.user.get_full_name }}
+                                                        </a>
+                                                    {% else %}
+                                                        -
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted py-4">
+                                                    No activities recorded for this month.
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <!-- Pagination -->
+                                {% if monthly_activities.has_other_pages %}
+                                <nav>
+                                    <ul class="pagination justify-content-center">
+                                        {% if monthly_activities.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ monthly_activities.previous_page_number }}">
+                                                <i class="fas fa-chevron-left"></i>
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% for num in monthly_activities.paginator.page_range %}
+                                        <li class="page-item {% if monthly_activities.number == num %}active{% endif %}">
+                                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                        </li>
+                                        {% endfor %}
+                                        
+                                        {% if monthly_activities.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ monthly_activities.next_page_number }}">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Member Summary -->
+                            <div class="tab-pane fade" id="member-summary" role="tabpanel">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Member</th>
+                                                <th>Savings Balance</th>
+                                                <th>Active Loans</th>
+                                                <th>Total Deposits</th>
+                                                <th>Total Withdrawals</th>
+                                                <th>Net Activity</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for member in member_summaries %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{% url 'members:detail' member.id %}" class="text-decoration-none">
+                                                        {{ member.user.get_full_name }}
+                                                    </a>
+                                                </td>
+                                                <td class="text-end">₦{{ member.savings_balance|floatformat:2 }}</td>
+                                                <td class="text-center">
+                                                    {% if member.active_loans %}
+                                                        <span class="badge bg-warning">{{ member.active_loans }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-success">0</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-end text-success">₦{{ member.monthly_deposits|floatformat:2 }}</td>
+                                                <td class="text-end text-danger">₦{{ member.monthly_withdrawals|floatformat:2 }}</td>
+                                                <td class="text-end">
+                                                    <span class="{% if member.net_activity >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                        ₦{{ member.net_activity|floatformat:2 }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4">
+                                                    No member activity for this month.
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        <tfoot class="table-dark">
+                                            <tr>
+                                                <th>TOTALS</th>
+                                                <th class="text-end">₦{{ total_savings_balance|floatformat:2 }}</th>
+                                                <th class="text-center">{{ total_active_loans }}</th>
+                                                <th class="text-end">₦{{ total_monthly_deposits|floatformat:2 }}</th>
+                                                <th class="text-end">₦{{ total_monthly_withdrawals|floatformat:2 }}</th>
+                                                <th class="text-end">₦{{ total_net_activity|floatformat:2 }}</th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Loan Summary -->
+                            <div class="tab-pane fade" id="loan-summary" role="tabpanel">
+                                <div class="row mb-3">
+                                    <div class="col-md-3">
+                                        <div class="card bg-info text-white">
+                                            <div class="card-body text-center">
+                                                <h5>{{ loans_applied }}</h5>
+                                                <small>Applications</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-success text-white">
+                                            <div class="card-body text-center">
+                                                <h5>{{ loans_approved }}</h5>
+                                                <small>Approved</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-warning text-white">
+                                            <div class="card-body text-center">
+                                                <h5>{{ loans_disbursed_count }}</h5>
+                                                <small>Disbursed</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-primary text-white">
+                                            <div class="card-body text-center">
+                                                <h5>₦{{ repayments_received|floatformat:0 }}</h5>
+                                                <small>Repayments</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Loan ID</th>
+                                                <th>Member</th>
+                                                <th>Amount</th>
+                                                <th>Status</th>
+                                                <th>Disbursed Date</th>
+                                                <th>Repayments</th>
+                                                <th>Balance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for loan in monthly_loans %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{% url 'loans:detail' loan.id %}" class="text-decoration-none">
+                                                        #{{ loan.id|stringformat:"05d" }}
+                                                    </a>
+                                                </td>
+                                                <td>{{ loan.member.user.get_full_name }}</td>
+                                                <td class="text-end">₦{{ loan.amount|floatformat:2 }}</td>
+                                                <td>
+                                                    <span class="badge bg-{% if loan.status == 'active' %}success{% elif loan.status == 'completed' %}primary{% elif loan.status == 'overdue' %}danger{% else %}warning{% endif %}">
+                                                        {{ loan.get_status_display }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ loan.disbursed_date|date:"M d, Y" }}</td>
+                                                <td class="text-end">₦{{ loan.monthly_repayments|floatformat:2 }}</td>
+                                                <td class="text-end">₦{{ loan.balance|floatformat:2 }}</td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="7" class="text-center text-muted py-4">
+                                                    No loan activity for this month.
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Savings Summary -->
+                            <div class="tab-pane fade" id="savings-summary" role="tabpanel">
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <div class="card bg-success text-white">
+                                            <div class="card-body text-center">
+                                                <h5>₦{{ total_deposits|floatformat:0 }}</h5>
+                                                <small>Total Deposits</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-warning text-white">
+                                            <div class="card-body text-center">
+                                                <h5>₦{{ total_withdrawals|floatformat:0 }}</h5>
+                                                <small>Total Withdrawals</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-info text-white">
+                                            <div class="card-body text-center">
+                                                <h5>₦{{ interest_paid|floatformat:0 }}</h5>
+                                                <small>Interest Paid</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Member</th>
+                                                <th>Account Type</th>
+                                                <th>Opening Balance</th>
+                                                <th>Deposits</th>
+                                                <th>Withdrawals</th>
+                                                <th>Interest</th>
+                                                <th>Closing Balance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for account in savings_accounts %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{% url 'members:detail' account.member.id %}" class="text-decoration-none">
+                                                        {{ account.member.user.get_full_name }}
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-primary">{{ account.get_account_type_display }}</span>
+                                                </td>
+                                                <td class="text-end">₦{{ account.opening_balance|floatformat:2 }}</td>
+                                                <td class="text-end text-success">₦{{ account.monthly_deposits|floatformat:2 }}</td>
+                                                <td class="text-end text-danger">₦{{ account.monthly_withdrawals|floatformat:2 }}</td>
+                                                <td class="text-end text-info">₦{{ account.monthly_interest|floatformat:2 }}</td>
+                                                <td class="text-end">₦{{ account.balance|floatformat:2 }}</td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="7" class="text-center text-muted py-4">
+                                                    No savings accounts found.
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Daily Breakdown -->
+                            <div class="tab-pane fade" id="daily-breakdown" role="tabpanel">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Date</th>
+                                                <th class="text-end">Deposits</th>
+                                                <th class="text-end">Withdrawals</th>
+                                                <th class="text-end">Net Savings</th>
+                                                <th class="text-end">Loans</th>
+                                                <th class="text-end">Repayments</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for day in daily_breakdown %}
+                                            <tr>
+                                                <td>{{ day.date|date:"M d, Y" }}</td>
+                                                <td class="text-end text-success">₦{{ day.deposits|floatformat:2 }}</td>
+                                                <td class="text-end text-danger">₦{{ day.withdrawals|floatformat:2 }}</td>
+                                                <td class="text-end {% if day.net_savings >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    ₦{{ day.net_savings|floatformat:2 }}
+                                                </td>
+                                                <td class="text-end text-info">₦{{ day.loans|floatformat:2 }}</td>
+                                                <td class="text-end text-warning">₦{{ day.repayments|floatformat:2 }}</td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4">
+                                                    No daily data available for this month.
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        <tfoot class="table-dark">
+                                            <tr>
+                                                <th>TOTAL</th>
+                                                <th class="text-end">₦{{ monthly_savings_deposits|floatformat:2 }}</th>
+                                                <th class="text-end">₦{{ monthly_savings_withdrawals|floatformat:2 }}</th>
+                                                <th class="text-end">₦{{ monthly_savings_deposits|add:monthly_savings_withdrawals|floatformat:2 }}</th>
+                                                <th class="text-end">₦{{ monthly_loan_disbursements|floatformat:2 }}</th>
+                                                <th class="text-end">₦{{ monthly_loan_repayments|floatformat:2 }}</th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Monthly Comparison -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-chart-bar me-2"></i>Month-over-Month Comparison
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Metric</th>
+                                                <th>Current Month</th>
+                                                <th>Previous Month</th>
+                                                <th>Change</th>
+                                                <th>% Change</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Total Savings</td>
+                                                <td class="text-end">₦{{ current_savings|floatformat:2 }}</td>
+                                                <td class="text-end">₦{{ previous_savings|floatformat:2 }}</td>
+                                                <td class="text-end {% if savings_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    {% if savings_change >= 0 %}+{% endif %}₦{{ savings_change|floatformat:2 }}
+                                                </td>
+                                                <td class="text-end {% if savings_change_percent >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    {% if savings_change_percent >= 0 %}+{% endif %}{{ savings_change_percent|floatformat:1 }}%
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Loans Disbursed</td>
+                                                <td class="text-end">₦{{ current_loans|floatformat:2 }}</td>
+                                                <td class="text-end">₦{{ previous_loans|floatformat:2 }}</td>
+                                                <td class="text-end {% if loans_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    {% if loans_change >= 0 %}+{% endif %}₦{{ loans_change|floatformat:2 }}
+                                                </td>
+                                                <td class="text-end {% if loans_change_percent >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    {% if loans_change_percent >= 0 %}+{% endif %}{{ loans_change_percent|floatformat:1 }}%
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Member Count</td>
+                                                <td class="text-end">{{ current_members }}</td>
+                                                <td class="text-end">{{ previous_members }}</td>
+                                                <td class="text-end {% if members_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    {% if members_change >= 0 %}+{% endif %}{{ members_change }}
+                                                </td>
+                                                <td class="text-end {% if members_change_percent >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    {% if members_change_percent >= 0 %}+{% endif %}{{ members_change_percent|floatformat:1 }}%
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>Net Income</td>
+                                                <td class="text-end">₦{{ current_income|floatformat:2 }}</td>
+                                                <td class="text-end">₦{{ previous_income|floatformat:2 }}</td>
+                                                <td class="text-end {% if income_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    {% if income_change >= 0 %}+{% endif %}₦{{ income_change|floatformat:2 }}
+                                                </td>
+                                                <td class="text-end {% if income_change_percent >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    {% if income_change_percent >= 0 %}+{% endif %}{{ income_change_percent|floatformat:1 }}%
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Month Selection Modal -->
+<div class="modal fade" id="monthModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar me-2"></i>Select Month
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="get">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="month" class="form-label">Month</label>
+                        <select class="form-select" name="month" id="month">
+                            {% for month in available_months %}
+                            <option value="{{ month.value }}" {% if month.value == selected_month.month %}selected{% endif %}>
+                                {{ month.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="year" class="form-label">Year</label>
+                        <select class="form-select" name="year" id="year">
+                            {% for year in available_years %}
+                            <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>
+                                {{ year }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-calendar me-2"></i>Generate Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/chart.min.js' %}"></script>
+<script>
+// Monthly Performance Chart
+const ctx = document.getElementById('monthlyChart').getContext('2d');
+const monthlyChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: {{ chart_labels|safe }},
+        datasets: [{
+            label: 'Savings',
+            data: {{ savings_data|safe }},
+            borderColor: 'rgb(25, 135, 84)',
+            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+            tension: 0.1
+        }, {
+            label: 'Loans',
+            data: {{ loans_data|safe }},
+            borderColor: 'rgb(255, 193, 7)',
+            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+            tension: 0.1
+        }, {
+            label: 'Income',
+            data: {{ income_data|safe }},
+            borderColor: 'rgb(13, 110, 253)',
+            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value, index, values) {
+                        return '₦' + value.toLocaleString();
+                    }
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                position: 'top'
+            }
+        }
+    }
+});
+
+function exportReport() {
+    const month = '{{ selected_month.month }}';
+    const year = '{{ selected_month.year }}';
+    window.location.href = `{% url 'reports:export' %}?type=monthly&format=excel&month=${month}&year=${year}`;
+}
+
+function printReport() {
+    window.print();
+}
+</script>
+{% endblock %}

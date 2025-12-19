@@ -1,0 +1,341 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}Report Preview{% endblock %}
+
+{% block extra_css %}
+<style>
+.preview-container {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.preview-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 15px 15px 0 0;
+    margin: -2rem -2rem 2rem -2rem;
+}
+
+.filter-summary {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    border-left: 4px solid #667eea;
+}
+
+.preview-content {
+    min-height: 400px;
+    border: 2px dashed #dee2e6;
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+}
+
+.sample-data {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.action-buttons {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 0 0 15px 15px;
+    margin: 2rem -2rem -2rem -2rem;
+    border-top: 1px solid #dee2e6;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="preview-container">
+                <div class="preview-header">
+                    <h2 class="mb-0">
+                        <i class="fas fa-eye me-3"></i>
+                        Report Preview
+                    </h2>
+                    <p class="mb-0 mt-2">Preview your report before final generation</p>
+                </div>
+
+                <!-- Filter Summary -->
+                <div class="filter-summary">
+                    <h6 class="mb-2">
+                        <i class="fas fa-filter me-2"></i>
+                        Applied Filters
+                    </h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Report Type:</strong> {{ report_type|default:"Not specified" }}</p>
+                            <p class="mb-1"><strong>Date Range:</strong> {{ start_date|default:"All time" }} to {{ end_date|default:"Present" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>Format:</strong> {{ format|default:"HTML" }}</p>
+                            <p class="mb-1"><strong>Preview Mode:</strong> {{ preview|yesno:"Yes,No" }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Content -->
+                <div class="preview-content">
+                    {% if report_type %}
+                        {% if report_type == 'balance_sheet' %}
+                            <div class="sample-data">
+                                <h5 class="text-primary mb-3">Balance Sheet Preview</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Account</th>
+                                                <th>Assets</th>
+                                                <th>Liabilities</th>
+                                                <th>Equity</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Cash and Bank</td>
+                                                <td>₦2,500,000</td>
+                                                <td>-</td>
+                                                <td>-</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Member Savings</td>
+                                                <td>-</td>
+                                                <td>₦1,800,000</td>
+                                                <td>-</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Loans Outstanding</td>
+                                                <td>₦900,000</td>
+                                                <td>-</td>
+                                                <td>-</td>
+                                            </tr>
+                                            <tr class="table-primary">
+                                                <td><strong>Total</strong></td>
+                                                <td><strong>₦3,400,000</strong></td>
+                                                <td><strong>₦1,800,000</strong></td>
+                                                <td><strong>₦1,600,000</strong></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        {% elif report_type == 'member_list' %}
+                            <div class="sample-data">
+                                <h5 class="text-primary mb-3">Member Directory Preview</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Member ID</th>
+                                                <th>Name</th>
+                                                <th>Status</th>
+                                                <th>Join Date</th>
+                                                <th>Savings Balance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>COOP20250001</td>
+                                                <td>John Doe</td>
+                                                <td><span class="badge bg-success">Active</span></td>
+                                                <td>Jan 15, 2025</td>
+                                                <td>₦125,000</td>
+                                            </tr>
+                                            <tr>
+                                                <td>COOP20250002</td>
+                                                <td>Jane Smith</td>
+                                                <td><span class="badge bg-success">Active</span></td>
+                                                <td>Feb 3, 2025</td>
+                                                <td>₦89,500</td>
+                                            </tr>
+                                            <tr>
+                                                <td>COOP20250003</td>
+                                                <td>Michael Johnson</td>
+                                                <td><span class="badge bg-warning">Inactive</span></td>
+                                                <td>Mar 12, 2025</td>
+                                                <td>₦45,200</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        {% elif report_type == 'savings_summary' %}
+                            <div class="sample-data">
+                                <h5 class="text-primary mb-3">Savings Summary Preview</h5>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="text-center p-3 bg-primary text-white rounded">
+                                            <h4>₦2,850,000</h4>
+                                            <small>Total Savings</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center p-3 bg-success text-white rounded">
+                                            <h4>156</h4>
+                                            <small>Active Accounts</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="text-center p-3 bg-info text-white rounded">
+                                            <h4>₦18,269</h4>
+                                            <small>Average Balance</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% elif report_type == 'loan_portfolio' %}
+                            <div class="sample-data">
+                                <h5 class="text-primary mb-3">Loan Portfolio Preview</h5>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="text-center p-3 bg-warning text-white rounded">
+                                            <h4>₦1,250,000</h4>
+                                            <small>Outstanding Loans</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center p-3 bg-danger text-white rounded">
+                                            <h4>12</h4>
+                                            <small>Overdue Loans</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center p-3 bg-success text-white rounded">
+                                            <h4>85%</h4>
+                                            <small>Recovery Rate</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center p-3 bg-info text-white rounded">
+                                            <h4>3.2%</h4>
+                                            <small>Default Rate</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-center text-muted py-5">
+                                <i class="fas fa-chart-bar fa-4x mb-3"></i>
+                                <h5>Report Preview</h5>
+                                <p>Select report parameters to see a preview here.</p>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-file-alt fa-4x mb-3"></i>
+                            <h5>No Report Selected</h5>
+                            <p>Please select a report type and configure filters to preview the report.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <button class="btn btn-outline-secondary" onclick="window.history.back()">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Configuration
+                            </button>
+                        </div>
+                        <div>
+                            {% if report_type %}
+                                <button class="btn btn-success me-2" onclick="generateFinalReport()">
+                                    <i class="fas fa-file-download me-2"></i>Generate Full Report
+                                </button>
+                                <button class="btn btn-primary" onclick="modifyReport()">
+                                    <i class="fas fa-edit me-2"></i>Modify Parameters
+                                </button>
+                            {% else %}
+                                <a href="{% url 'reports:dashboard' %}" class="btn btn-primary">
+                                    <i class="fas fa-chart-bar me-2"></i>Start New Report
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function generateFinalReport() {
+    // Show loading state
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+    button.disabled = true;
+    
+    // Get current URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Simulate report generation
+    setTimeout(() => {
+        // Create download or redirect to full report
+        showAlert('success', 'Report generated successfully!');
+        
+        // For demonstration, we'll redirect to the appropriate reports page
+        const reportType = '{{ report_type }}';
+        let redirectUrl = '';
+        
+        if (reportType.includes('balance') || reportType.includes('financial')) {
+            redirectUrl = '{% url "reports:financial" %}';
+        } else if (reportType.includes('member')) {
+            redirectUrl = '{% url "reports:membership" %}';
+        } else if (reportType.includes('savings')) {
+            redirectUrl = '{% url "reports:savings" %}';
+        } else if (reportType.includes('loan')) {
+            redirectUrl = '{% url "reports:loans" %}';
+        } else {
+            redirectUrl = '{% url "reports:dashboard" %}';
+        }
+        
+        if (redirectUrl) {
+            window.location.href = redirectUrl + '?' + urlParams.toString();
+        }
+        
+        // Reset button
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }, 3000);
+}
+
+function modifyReport() {
+    // Go back to the report configuration with current parameters
+    window.history.back();
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+
+// Auto-refresh preview every 30 seconds in case of real-time data
+setInterval(() => {
+    console.log('Preview auto-refresh...');
+    // Could implement AJAX refresh here
+}, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,623 @@
+{% extends 'base/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Loan Approval - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Loan Approval Center
+                </h5>
+                <div>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        <i class="fas fa-filter me-1"></i>Filter
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="bulkApprove()">
+                        <i class="fas fa-check-double me-1"></i>Bulk Approve
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <!-- Approval Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ pending_count }}</h4>
+                                <small>Pending Approval</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ approved_today }}</h4>
+                                <small>Approved Today</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ rejected_today }}</h4>
+                                <small>Rejected Today</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ pending_amount|floatformat:0 }}</h4>
+                                <small>Pending Amount</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Loan Applications Table -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="selectAll" class="form-check-input">
+                                </th>
+                                <th>Application ID</th>
+                                <th>Member</th>
+                                <th>Amount</th>
+                                <th>Purpose</th>
+                                <th>Applied Date</th>
+                                <th>Risk Score</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for application in loan_applications %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="form-check-input loan-checkbox" value="{{ application.id }}">
+                                </td>
+                                <td>
+                                    <a href="{% url 'loans:application_detail' application.id %}" class="text-decoration-none">
+                                        #{{ application.id|stringformat:"05d" }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-2">
+                                            {% if application.member.user.profile.avatar %}
+                                                <img src="{{ application.member.user.profile.avatar.url }}" alt="Avatar" class="rounded-circle" width="32" height="32">
+                                            {% else %}
+                                                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                                    <i class="fas fa-user text-white"></i>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <strong>{{ application.member.user.get_full_name }}</strong><br>
+                                            <small class="text-muted">{{ application.member.member_id }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <strong>₦{{ application.amount|floatformat:2 }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ application.purpose }}</span>
+                                </td>
+                                <td>{{ application.created_at|date:"M d, Y" }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                            <div class="progress-bar bg-{% if application.risk_score <= 30 %}success{% elif application.risk_score <= 60 %}warning{% else %}danger{% endif %}" 
+                                                 style="width: {{ application.risk_score }}%"></div>
+                                        </div>
+                                        <small class="{% if application.risk_score <= 30 %}text-success{% elif application.risk_score <= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                            {{ application.risk_score }}%
+                                        </small>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if application.status == 'pending' %}warning{% elif application.status == 'approved' %}success{% elif application.status == 'rejected' %}danger{% else %}secondary{% endif %}">
+                                        {{ application.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if application.status == 'pending' %}
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-info" onclick="reviewApplication('{{ application.id }}')" title="Review">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-success" onclick="approveApplication('{{ application.id }}')" title="Approve">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" onclick="rejectApplication('{{ application.id }}')" title="Reject">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    {% else %}
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="viewDetails('{{ application.id }}')" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-3x mb-3"></i><br>
+                                    No loan applications found.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if loan_applications.has_other_pages %}
+                <nav>
+                    <ul class="pagination justify-content-center">
+                        {% if loan_applications.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ loan_applications.previous_page_number }}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in loan_applications.paginator.page_range %}
+                        <li class="page-item {% if loan_applications.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        
+                        {% if loan_applications.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ loan_applications.next_page_number }}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-filter me-2"></i>Filter Applications
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="get">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="status_filter" class="form-label">Status</label>
+                        <select class="form-select" name="status" id="status_filter">
+                            <option value="">All Statuses</option>
+                            <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                            <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Approved</option>
+                            <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount_min" class="form-label">Minimum Amount</label>
+                        <input type="number" class="form-control" name="amount_min" id="amount_min" value="{{ request.GET.amount_min }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount_max" class="form-label">Maximum Amount</label>
+                        <input type="number" class="form-control" name="amount_max" id="amount_max" value="{{ request.GET.amount_max }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="date_from" class="form-label">Date From</label>
+                        <input type="date" class="form-control" name="date_from" id="date_from" value="{{ request.GET.date_from }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="date_to" class="form-label">Date To</label>
+                        <input type="date" class="form-control" name="date_to" id="date_to" value="{{ request.GET.date_to }}">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-2"></i>Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Application Review Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-search me-2"></i>Review Loan Application
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="reviewContent">
+                <!-- Content loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" id="approveBtn">
+                    <i class="fas fa-check me-2"></i>Approve
+                </button>
+                <button type="button" class="btn btn-danger" id="rejectBtn">
+                    <i class="fas fa-times me-2"></i>Reject
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approval Modal -->
+<div class="modal fade" id="approvalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>Approve Loan Application
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="approvalForm">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        You are about to approve loan application <strong id="approvalApplicationId"></strong>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="approved_amount" class="form-label">Approved Amount</label>
+                        <input type="number" class="form-control" id="approved_amount" name="approved_amount" step="0.01" required>
+                        <div class="form-text">Enter the approved loan amount</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="interest_rate" class="form-label">Interest Rate (%)</label>
+                        <input type="number" class="form-control" id="interest_rate" name="interest_rate" step="0.01" value="{{ default_interest_rate }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tenure_months" class="form-label">Tenure (Months)</label>
+                        <input type="number" class="form-control" id="tenure_months" name="tenure_months" min="1" max="60" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="approval_notes" class="form-label">Approval Notes</label>
+                        <textarea class="form-control" id="approval_notes" name="approval_notes" rows="3" placeholder="Optional notes for the approval"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="auto_disburse" name="auto_disburse">
+                            <label class="form-check-label" for="auto_disburse">
+                                Auto-disburse upon approval
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-2"></i>Approve Loan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div class="modal fade" id="rejectionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-times-circle me-2"></i>Reject Loan Application
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="rejectionForm">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        You are about to reject loan application <strong id="rejectionApplicationId"></strong>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="rejection_reason" class="form-label">Rejection Reason</label>
+                        <select class="form-select" id="rejection_reason" name="rejection_reason" required>
+                            <option value="">Select reason</option>
+                            <option value="insufficient_income">Insufficient Income</option>
+                            <option value="poor_credit_history">Poor Credit History</option>
+                            <option value="incomplete_documentation">Incomplete Documentation</option>
+                            <option value="exceeds_limit">Exceeds Credit Limit</option>
+                            <option value="duplicate_application">Duplicate Application</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="rejection_notes" class="form-label">Additional Notes</label>
+                        <textarea class="form-control" id="rejection_notes" name="rejection_notes" rows="3" placeholder="Provide detailed explanation for rejection"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="notify_member" name="notify_member" checked>
+                            <label class="form-check-label" for="notify_member">
+                                Notify member via email/SMS
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times me-2"></i>Reject Application
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Action Modal -->
+<div class="modal fade" id="bulkModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-double me-2"></i>Bulk Approval
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    You have selected <span id="selectedCount">0</span> applications for bulk approval.
+                </div>
+                
+                <div class="mb-3">
+                    <label for="bulk_interest_rate" class="form-label">Interest Rate (%) for all</label>
+                    <input type="number" class="form-control" id="bulk_interest_rate" step="0.01" value="{{ default_interest_rate }}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="bulk_notes" class="form-label">Bulk Approval Notes</label>
+                    <textarea class="form-control" id="bulk_notes" rows="3" placeholder="Notes for all selected applications"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="processBulkApproval()">
+                    <i class="fas fa-check-double me-2"></i>Approve Selected
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentApplicationId = null;
+
+// Select all functionality
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.loan-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+    updateBulkActionButton();
+});
+
+// Individual checkbox change
+document.querySelectorAll('.loan-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', updateBulkActionButton);
+});
+
+function updateBulkActionButton() {
+    const selectedCount = document.querySelectorAll('.loan-checkbox:checked').length;
+    document.getElementById('selectedCount').textContent = selectedCount;
+}
+
+function reviewApplication(applicationId) {
+    currentApplicationId = applicationId;
+    
+    // Load application details
+    fetch(`{% url 'loans:application_detail_ajax' %}?id=${applicationId}`)
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('reviewContent').innerHTML = html;
+        $('#reviewModal').modal('show');
+        
+        // Set up modal buttons
+        document.getElementById('approveBtn').onclick = () => approveApplication(applicationId);
+        document.getElementById('rejectBtn').onclick = () => rejectApplication(applicationId);
+    })
+    .catch(error => {
+        showAlert('danger', 'Failed to load application details.');
+    });
+}
+
+function approveApplication(applicationId) {
+    currentApplicationId = applicationId;
+    
+    // Load application amount for pre-filling
+    fetch(`{% url 'loans:application_data' %}?id=${applicationId}`)
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('approved_amount').value = data.amount;
+        document.getElementById('tenure_months').value = data.requested_tenure || 12;
+        document.getElementById('approvalApplicationId').textContent = `#${applicationId.toString().padStart(5, '0')}`;
+        
+        $('#reviewModal').modal('hide');
+        $('#approvalModal').modal('show');
+    });
+}
+
+function rejectApplication(applicationId) {
+    currentApplicationId = applicationId;
+    document.getElementById('rejectionApplicationId').textContent = `#${applicationId.toString().padStart(5, '0')}`;
+    
+    $('#reviewModal').modal('hide');
+    $('#rejectionModal').modal('show');
+}
+
+function viewDetails(applicationId) {
+    window.location.href = `{% url 'loans:application_detail' %}${applicationId}/`;
+}
+
+function bulkApprove() {
+    const selectedApplications = document.querySelectorAll('.loan-checkbox:checked');
+    if (selectedApplications.length === 0) {
+        showAlert('warning', 'Please select applications to approve.');
+        return;
+    }
+    
+    $('#bulkModal').modal('show');
+}
+
+function processBulkApproval() {
+    const selectedApplications = Array.from(document.querySelectorAll('.loan-checkbox:checked'))
+        .map(checkbox => checkbox.value);
+    
+    const data = {
+        application_ids: selectedApplications,
+        interest_rate: document.getElementById('bulk_interest_rate').value,
+        notes: document.getElementById('bulk_notes').value
+    };
+    
+    fetch('{% url "loans:bulk_approve" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', `${data.approved_count} applications approved successfully.`);
+            $('#bulkModal').modal('hide');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showAlert('danger', 'Bulk approval failed: ' + data.error);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'An error occurred during bulk approval.');
+    });
+}
+
+// Approval form submission
+document.getElementById('approvalForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    formData.append('application_id', currentApplicationId);
+    
+    fetch('{% url "loans:approve_application" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', 'Loan application approved successfully!');
+            $('#approvalModal').modal('hide');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showAlert('danger', 'Approval failed: ' + data.error);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'An error occurred during approval.');
+    });
+});
+
+// Rejection form submission
+document.getElementById('rejectionForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    formData.append('application_id', currentApplicationId);
+    
+    fetch('{% url "loans:reject_application" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', 'Loan application rejected.');
+            $('#rejectionModal').modal('hide');
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showAlert('danger', 'Rejection failed: ' + data.error);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'An error occurred during rejection.');
+    });
+});
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.row');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// Auto-refresh every 2 minutes
+setInterval(function() {
+    // Check for new applications
+    fetch('{% url "loans:check_new_applications" %}')
+    .then(response => response.json())
+    .then(data => {
+        if (data.has_new) {
+            showAlert('info', `${data.new_count} new loan application(s) received.`);
+            setTimeout(() => location.reload(), 3000);
+        }
+    })
+    .catch(error => console.log('Auto-refresh failed'));
+}, 120000);
+</script>
+{% endblock %}

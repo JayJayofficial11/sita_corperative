@@ -1,0 +1,415 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Edit {{ member.user.get_full_name }} - Member Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-edit me-2"></i>
+                    Edit Member: {{ member.user.get_full_name }}
+                </h5>
+            </div>
+            
+            <div class="card-body">
+                <form id="memberEditForm" method="post" action="{% url 'members:edit' member.pk %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {% if user_form.non_field_errors %}
+                    <div class="alert alert-danger">{{ user_form.non_field_errors }}</div>
+                    {% endif %}
+                    {% if member_form.non_field_errors %}
+                    <div class="alert alert-danger">{{ member_form.non_field_errors }}</div>
+                    {% endif %}
+                    
+                    <!-- User Account Information -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-user-circle me-2"></i>Account Information
+                            </h6>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ user_form.username.id_for_label }}" class="form-label">{{ user_form.username.label }} *</label>
+                                {{ user_form.username }}
+                                {% if user_form.username.errors %}
+                                    <div class="invalid-feedback d-block">{{ user_form.username.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ user_form.email.id_for_label }}" class="form-label">{{ user_form.email.label }} *</label>
+                                {{ user_form.email }}
+                                {% if user_form.email.errors %}
+                                    <div class="invalid-feedback d-block">{{ user_form.email.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ user_form.first_name.id_for_label }}" class="form-label">{{ user_form.first_name.label }} *</label>
+                                {{ user_form.first_name }}
+                                {% if user_form.first_name.errors %}
+                                    <div class="invalid-feedback d-block">{{ user_form.first_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ user_form.last_name.id_for_label }}" class="form-label">{{ user_form.last_name.label }} *</label>
+                                {{ user_form.last_name }}
+                                {% if user_form.last_name.errors %}
+                                    <div class="invalid-feedback d-block">{{ user_form.last_name.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ user_form.phone_number.id_for_label }}" class="form-label">{{ user_form.phone_number.label }}</label>
+                                {{ user_form.phone_number }}
+                                {% if user_form.phone_number.errors %}
+                                    <div class="invalid-feedback d-block">{{ user_form.phone_number.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ user_form.profile_picture.id_for_label }}" class="form-label">{{ user_form.profile_picture.label }}</label>
+                                {{ user_form.profile_picture }}
+                                <div class="form-text">Upload a new profile picture (optional). Supported formats: JPG, PNG, GIF</div>
+                                {% if user_form.profile_picture.errors %}
+                                    <div class="invalid-feedback d-block">{{ user_form.profile_picture.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ user_form.role.id_for_label }}" class="form-label">{{ user_form.role.label }}</label>
+                                {{ user_form.role }}
+                                {% if user_form.role.errors %}
+                                    <div class="invalid-feedback d-block">{{ user_form.role.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    {{ user_form.is_verified }}
+                                    <label for="{{ user_form.is_verified.id_for_label }}" class="form-check-label">{{ user_form.is_verified.label }}</label>
+                                </div>
+                                {% if user_form.is_verified.errors %}
+                                    <div class="invalid-feedback d-block">{{ user_form.is_verified.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-center">
+                                {% if member.user.profile_picture %}
+                                    <img src="{{ member.user.profile_picture.url }}" alt="Profile" class="rounded-circle mb-2" width="100" height="100" style="object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-secondary rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                                        <i class="fas fa-user fa-2x text-white"></i>
+                                    </div>
+                                {% endif %}
+                                <p class="small text-muted">Current Profile Picture</p>
+                                <div class="mt-3">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Upload a new image to replace the current profile picture
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Member Information -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-id-card me-2"></i>Member Information
+                            </h6>
+                        </div>
+                        <div class="col-12">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.date_of_birth.id_for_label }}" class="form-label">{{ member_form.date_of_birth.label }} *</label>
+                                        {{ member_form.date_of_birth }}
+                                        {% if member_form.date_of_birth.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.date_of_birth.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.gender.id_for_label }}" class="form-label">{{ member_form.gender.label }} *</label>
+                                        {{ member_form.gender }}
+                                        {% if member_form.gender.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.gender.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.marital_status.id_for_label }}" class="form-label">{{ member_form.marital_status.label }} *</label>
+                                        {{ member_form.marital_status }}
+                                        {% if member_form.marital_status.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.marital_status.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.occupation.id_for_label }}" class="form-label">{{ member_form.occupation.label }} *</label>
+                                        {{ member_form.occupation }}
+                                        {% if member_form.occupation.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.occupation.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.monthly_savings.id_for_label }}" class="form-label">{{ member_form.monthly_savings.label }} *</label>
+                                        {{ member_form.monthly_savings }}
+                                        {% if member_form.monthly_savings.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.monthly_savings.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.employer.id_for_label }}" class="form-label">{{ member_form.employer.label }} *</label>
+                                        {{ member_form.employer }}
+                                        {% if member_form.employer.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.employer.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.entrance_date.id_for_label }}" class="form-label">{{ member_form.entrance_date.label }} *</label>
+                                        {{ member_form.entrance_date }}
+                                        {% if member_form.entrance_date.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.entrance_date.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ member_form.address.id_for_label }}" class="form-label">{{ member_form.address.label }} *</label>
+                                {{ member_form.address }}
+                                {% if member_form.address.errors %}
+                                    <div class="invalid-feedback d-block">{{ member_form.address.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.city.id_for_label }}" class="form-label">{{ member_form.city.label }} *</label>
+                                        {{ member_form.city }}
+                                        {% if member_form.city.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.city.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.state.id_for_label }}" class="form-label">{{ member_form.state.label }} *</label>
+                                        {{ member_form.state }}
+                                        {% if member_form.state.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.state.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.postal_code.id_for_label }}" class="form-label">{{ member_form.postal_code.label }} *</label>
+                                        {{ member_form.postal_code }}
+                                        {% if member_form.postal_code.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.postal_code.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.emergency_contact_name.id_for_label }}" class="form-label">{{ member_form.emergency_contact_name.label }} *</label>
+                                        {{ member_form.emergency_contact_name }}
+                                        {% if member_form.emergency_contact_name.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.emergency_contact_name.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.emergency_contact_phone.id_for_label }}" class="form-label">{{ member_form.emergency_contact_phone.label }} *</label>
+                                        {{ member_form.emergency_contact_phone }}
+                                        {% if member_form.emergency_contact_phone.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.emergency_contact_phone.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.guarantor_name.id_for_label }}" class="form-label">{{ member_form.guarantor_name.label }} *</label>
+                                        {{ member_form.guarantor_name }}
+                                        {% if member_form.guarantor_name.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.guarantor_name.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ member_form.guarantor_phone.id_for_label }}" class="form-label">{{ member_form.guarantor_phone.label }} *</label>
+                                        {{ member_form.guarantor_phone }}
+                                        {% if member_form.guarantor_phone.errors %}
+                                            <div class="invalid-feedback d-block">{{ member_form.guarantor_phone.errors.0 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ member_form.guarantor_address.id_for_label }}" class="form-label">{{ member_form.guarantor_address.label }} *</label>
+                                {{ member_form.guarantor_address }}
+                                {% if member_form.guarantor_address.errors %}
+                                    <div class="invalid-feedback d-block">{{ member_form.guarantor_address.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ member_form.membership_status.id_for_label }}" class="form-label">{{ member_form.membership_status.label }} *</label>
+                                {{ member_form.membership_status }}
+                                {% if member_form.membership_status.errors %}
+                                    <div class="invalid-feedback d-block">{{ member_form.membership_status.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'members:detail' member.pk %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Profile
+                        </a>
+                        <div>
+                            <button type="submit" class="btn btn-primary" id="saveButton">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Membership Status Change Modal -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-check me-2"></i>Change Membership Status
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'members:change_status' member.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="status" class="form-label">New Status</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="active" {% if member.membership_status == 'active' %}selected{% endif %}>Active</option>
+                            <option value="suspended" {% if member.membership_status == 'suspended' %}selected{% endif %}>Suspended</option>
+                            <option value="terminated" {% if member.membership_status == 'terminated' %}selected{% endif %}>Terminated</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason</label>
+                        <textarea name="reason" id="reason" class="form-control" rows="3" placeholder="Reason for status change..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Enhanced form validation and submission
+document.addEventListener('DOMContentLoaded', function() {
+    const mainForm = document.getElementById('memberEditForm');
+    const saveButton = document.getElementById('saveButton');
+    
+    console.log('Main form found:', mainForm);
+    console.log('Save button found:', saveButton);
+    
+    if (mainForm && saveButton) {
+        // Add click event listener to save button
+        saveButton.addEventListener('click', function(e) {
+            console.log('Save button clicked');
+            
+            // Validate required fields
+            const requiredFields = mainForm.querySelectorAll('[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            if (isValid) {
+                console.log('Form is valid, submitting...');
+                // Let the form submit naturally
+            } else {
+                console.log('Form is invalid');
+                e.preventDefault();
+                e.stopPropagation();
+                alert('Please fill in all required fields.');
+            }
+            
+            mainForm.classList.add('was-validated');
+        });
+        
+        // Also handle form submission directly
+        mainForm.addEventListener('submit', function(e) {
+            console.log('Form submit event triggered');
+            
+            // Validate required fields
+            const requiredFields = mainForm.querySelectorAll('[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Form validation failed, preventing submission');
+                alert('Please fill in all required fields.');
+            } else {
+                console.log('Form validation passed, allowing submission');
+            }
+            
+            mainForm.classList.add('was-validated');
+        });
+    } else {
+        console.error('Main form or save button not found');
+    }
+});
+</script>
+{% endblock %}

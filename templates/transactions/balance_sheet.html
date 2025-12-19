@@ -1,0 +1,522 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Balance Sheet - {{ period_label }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.balance-sheet {
+    font-family: 'Arial', sans-serif;
+    line-height: 1.6;
+}
+
+.balance-sheet .section-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: 8px 8px 0 0;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.balance-sheet .section-content {
+    border: 2px solid #e9ecef;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 1.5rem;
+    background: white;
+}
+
+.balance-sheet .item-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.balance-sheet .item-row:last-child {
+    border-bottom: none;
+}
+
+.balance-sheet .item-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+.balance-sheet .item-amount {
+    font-weight: 600;
+    color: #212529;
+}
+
+.balance-sheet .subtotal {
+    background: #f8f9fa;
+    font-weight: bold;
+    border-top: 2px solid #dee2e6;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+}
+
+.balance-sheet .total {
+    background: #e3f2fd;
+    font-weight: bold;
+    font-size: 1.1rem;
+    border: 2px solid #2196f3;
+    border-radius: 4px;
+    margin-top: 1rem;
+    padding: 1rem;
+}
+
+.balance-sheet .balance-check {
+    background: {% if is_balanced %}#d4edda{% else %}#f8d7da{% endif %};
+    border: 2px solid {% if is_balanced %}#28a745{% else %}#dc3545{% endif %};
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.balance-sheet .balance-check .status {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: {% if is_balanced %}#155724{% else %}#721c24{% endif %};
+}
+
+.print-section {
+    display: none;
+}
+
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .print-section {
+        display: block !important;
+    }
+    
+    .balance-sheet {
+        font-size: 12px;
+    }
+    
+    .balance-sheet .section-header {
+        background: #f8f9fa !important;
+        color: #000 !important;
+        border: 1px solid #000;
+    }
+    
+    .balance-sheet .section-content {
+        border: 1px solid #000;
+    }
+    
+    .balance-sheet .total {
+        background: #f8f9fa !important;
+        border: 2px solid #000 !important;
+    }
+}
+
+.filter-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    background: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.metric-card .metric-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.metric-card .metric-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 mb-0">
+                        <i class="fas fa-balance-scale text-primary me-3"></i>
+                        Balance Sheet - {{ period_label }}
+                    </h1>
+                    <p class="text-muted">Comprehensive financial statement for {{ period_label }}</p>
+                </div>
+                <div class="no-print">
+                    <button class="btn btn-success btn-lg me-2" onclick="window.print()">
+                        <i class="fas fa-print me-2"></i>Print Balance Sheet
+                    </button>
+                    <a href="{% url 'transactions:list' %}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Transactions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4 no-print">
+        <div class="col-12">
+            <div class="filter-section">
+                <h5 class="mb-3">Filter Options</h5>
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="type" class="form-label">Report Type</label>
+                        <select name="type" id="type" class="form-select" onchange="toggleMonthField()">
+                            <option value="monthly" {% if report_type == 'monthly' %}selected{% endif %}>Monthly</option>
+                            <option value="yearly" {% if report_type == 'yearly' %}selected{% endif %}>Yearly</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="year" class="form-label">Year</label>
+                        <select name="year" id="year" class="form-select">
+                            {% for year in available_years %}
+                                <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3" id="month-field" {% if report_type == 'yearly' %}style="display: none;"{% endif %}>
+                        <label for="month" class="form-label">Month</label>
+                        <select name="month" id="month" class="form-select">
+                            <option value="">All Months</option>
+                            {% for month_num, month_name in months %}
+                                <option value="{{ month_num }}" {% if month_num == current_month %}selected{% endif %}>{{ month_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-2"></i>Generate Report
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="row mb-4 no-print">
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value">₦{{ total_assets|floatformat:2|default:"0.00" }}</div>
+                <div class="metric-label">Total Assets</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value">₦{{ total_liabilities|floatformat:2|default:"0.00" }}</div>
+                <div class="metric-label">Total Liabilities</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value">₦{{ total_equity|floatformat:2|default:"0.00" }}</div>
+                <div class="metric-label">Total Equity</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-card">
+                <div class="metric-value">₦{{ available_balance|floatformat:2|default:"0.00" }}</div>
+                <div class="metric-label">Available Balance</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Balance Sheet -->
+    <div class="row">
+        <!-- Assets -->
+        <div class="col-md-6">
+            <div class="balance-sheet">
+                <div class="section-header">
+                    <i class="fas fa-coins me-2"></i>ASSETS
+                </div>
+                <div class="section-content">
+                    <div class="item-row">
+                        <span class="item-label">Cash and Cash Equivalents</span>
+                        <span class="item-amount">₦{{ total_member_savings|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Loans Receivable</span>
+                        <span class="item-amount">₦{{ outstanding_loans|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Interest Receivable</span>
+                        <span class="item-amount">₦{{ interest_receivable|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Registration Fees Receivable</span>
+                        <span class="item-amount">₦{{ registration_fees_receivable|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Other Assets</span>
+                        <span class="item-amount">₦{{ other_assets|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="item-row subtotal">
+                        <span class="item-label">TOTAL ASSETS</span>
+                        <span class="item-amount">₦{{ total_assets|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liabilities & Equity -->
+        <div class="col-md-6">
+            <div class="balance-sheet">
+                <div class="section-header">
+                    <i class="fas fa-file-invoice me-2"></i>LIABILITIES & EQUITY
+                </div>
+                <div class="section-content">
+                    <!-- Liabilities -->
+                    <div class="item-row">
+                        <span class="item-label"><strong>LIABILITIES</strong></span>
+                        <span class="item-amount"></span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Member Savings (Liability)</span>
+                        <span class="item-amount">₦{{ member_savings_liability|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Accrued Interest Payable</span>
+                        <span class="item-amount">₦{{ accrued_interest|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Other Liabilities</span>
+                        <span class="item-amount">₦{{ other_liabilities|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="item-row subtotal">
+                        <span class="item-label">TOTAL LIABILITIES</span>
+                        <span class="item-amount">₦{{ total_liabilities|floatformat:2|default:"0.00" }}</span>
+                    </div>
+
+                    <!-- Equity -->
+                    <div class="item-row">
+                        <span class="item-label"><strong>EQUITY</strong></span>
+                        <span class="item-amount"></span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Registration Fees Earned</span>
+                        <span class="item-amount">₦{{ registration_fees_earned|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Loan Interest Earned</span>
+                        <span class="item-amount">₦{{ loan_interest_earned|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Net Income</span>
+                        <span class="item-amount">₦{{ net_income|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="item-label">Retained Earnings</span>
+                        <span class="item-amount">₦{{ retained_earnings|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                    <div class="item-row subtotal">
+                        <span class="item-label">TOTAL EQUITY</span>
+                        <span class="item-amount">₦{{ total_equity|floatformat:2|default:"0.00" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Income Statement -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="balance-sheet">
+                <div class="section-header">
+                    <i class="fas fa-chart-line me-2"></i>INCOME STATEMENT
+                </div>
+                <div class="section-content">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="item-row">
+                                <span class="item-label"><strong>REVENUE</strong></span>
+                                <span class="item-amount"></span>
+                            </div>
+                            <div class="item-row">
+                                <span class="item-label">Registration Fees</span>
+                                <span class="item-amount">₦{{ registration_fees_earned|floatformat:2|default:"0.00" }}</span>
+                            </div>
+                            <div class="item-row">
+                                <span class="item-label">Loan Interest</span>
+                                <span class="item-amount">₦{{ loan_interest_earned|floatformat:2|default:"0.00" }}</span>
+                            </div>
+                            <div class="item-row">
+                                <span class="item-label">Other Income</span>
+                                <span class="item-amount">₦{{ net_income|floatformat:2|default:"0.00" }}</span>
+                            </div>
+                            <div class="item-row subtotal">
+                                <span class="item-label">TOTAL REVENUE</span>
+                                <span class="item-amount">₦{{ total_revenue|floatformat:2|default:"0.00" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="item-row">
+                                <span class="item-label"><strong>EXPENSES</strong></span>
+                                <span class="item-amount"></span>
+                            </div>
+                            <div class="item-row">
+                                <span class="item-label">Operating Expenses</span>
+                                <span class="item-amount">₦{{ other_liabilities|floatformat:2|default:"0.00" }}</span>
+                            </div>
+                            <div class="item-row">
+                                <span class="item-label">Interest Paid</span>
+                                <span class="item-amount">₦{{ accrued_interest|floatformat:2|default:"0.00" }}</span>
+                            </div>
+                            <div class="item-row subtotal">
+                                <span class="item-label">TOTAL EXPENSES</span>
+                                <span class="item-amount">₦{{ total_expenses_amount|floatformat:2|default:"0.00" }}</span>
+                            </div>
+                            <div class="item-row total">
+                                <span class="item-label">NET PROFIT</span>
+                                <span class="item-amount">₦{{ net_profit|floatformat:2|default:"0.00" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cash Flow Summary -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="balance-sheet">
+                <div class="section-header">
+                    <i class="fas fa-money-bill-wave me-2"></i>CASH FLOW SUMMARY
+                </div>
+                <div class="section-content">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="item-row">
+                                <span class="item-label">Total Cooperative Balance</span>
+                                <span class="item-amount">₦{{ total_cooperative_balance|floatformat:2|default:"0.00" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="item-row">
+                                <span class="item-label">Available Balance</span>
+                                <span class="item-amount">₦{{ available_balance|floatformat:2|default:"0.00" }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="item-row">
+                                <span class="item-label">Outstanding Loans</span>
+                                <span class="item-amount">₦{{ outstanding_loans|floatformat:2|default:"0.00" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="row mt-4 no-print">
+        <div class="col-12">
+            <div class="balance-sheet">
+                <div class="section-header">
+                    <i class="fas fa-chart-bar me-2"></i>KEY METRICS
+                </div>
+                <div class="section-content">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="item-row">
+                                <span class="item-label">Total Members</span>
+                                <span class="item-amount">{{ total_members }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="item-row">
+                                <span class="item-label">Active Loans</span>
+                                <span class="item-amount">{{ active_loans }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="item-row">
+                                <span class="item-label">Total Transactions</span>
+                                <span class="item-amount">{{ total_transactions }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="item-row">
+                                <span class="item-label">Period</span>
+                                <span class="item-amount">{{ period_label }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Balance Check -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="balance-check">
+                <div class="status">
+                    {% if is_balanced %}
+                        <i class="fas fa-check-circle me-2"></i>
+                        BALANCE SHEET IS BALANCED
+                    {% else %}
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        BALANCE SHEET IS NOT BALANCED
+                    {% endif %}
+                </div>
+                <div class="mt-2">
+                    <small>
+                        Assets: ₦{{ total_assets|floatformat:2|default:"0.00" }} | 
+                        Liabilities + Equity: ₦{{ total_liabilities|add:total_equity|floatformat:2|default:"0.00" }} | 
+                        Difference: ₦{{ balance_check|floatformat:2|default:"0.00" }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Print Section (Hidden by default) -->
+    <div class="print-section">
+        <div class="text-center mb-4">
+            <h2>COOPERATIVE BALANCE SHEET</h2>
+            <h3>{{ period_label }}</h3>
+            <p>Generated on: {{ "now"|date:"F d, Y" }}</p>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleMonthField() {
+    const reportType = document.getElementById('type').value;
+    const monthField = document.getElementById('month-field');
+    
+    if (reportType === 'yearly') {
+        monthField.style.display = 'none';
+        document.getElementById('month').value = '';
+    } else {
+        monthField.style.display = 'block';
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    toggleMonthField();
+});
+</script>
+{% endblock %}

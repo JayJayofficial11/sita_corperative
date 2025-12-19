@@ -1,0 +1,871 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Dashboard - Cooperative Management System{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0 text-primary-custom">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        Dashboard
+                    </h1>
+                    <p class="text-muted mb-0">Welcome back, {{ user.get_full_name|default:user.username }}!</p>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted">Last updated: {% now "M d, Y H:i" %}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Cooperative Amount Banner -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-lg" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-body text-white">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                <div class="me-4">
+                                    <i class="fas fa-coins fa-3x opacity-75"></i>
+                                </div>
+                                <div>
+                                    <h2 class="mb-1">Total Cooperative Balance</h2>
+                                    <h1 class="display-4 fw-bold mb-0" id="totalAmount">
+                                        <span class="amount-display">₦{{ total_cooperative_balance|floatformat:2|intcomma }}</span>
+                                        <span class="amount-hidden" style="display: none;">₦••••••••</span>
+                                    </h1>
+                                    <p class="mb-0 opacity-75">All cooperative money including outstanding loans</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="d-flex flex-column align-items-end">
+                                <div class="mb-2">
+                                    <button class="btn btn-light btn-sm me-2" onclick="toggleBalance()" id="balanceToggle">
+                                        <i class="fas fa-eye" id="balanceIcon"></i>
+                                    </button>
+                                    <button class="btn btn-light btn-lg" data-bs-toggle="modal" data-bs-target="#amountBreakdownModal">
+                                        <i class="fas fa-chart-pie me-2"></i>See Details
+                                    </button>
+                                </div>
+                                <div class="text-white-50">
+                                    <small><i class="fas fa-hand-holding-usd me-1"></i>{{ active_loans }} Active Loans</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <!-- Total Members -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stat-card primary">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                        <div class="stat-value">{{ total_members|floatformat:0 }}</div>
+                        <div class="stat-label">Total Members</div>
+                        {% if new_members_this_month > 0 %}
+                            <small class="text-success">
+                                <i class="fas fa-arrow-up"></i> +{{ new_members_this_month }} this month
+                            </small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Savings -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stat-card success">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                        <div class="stat-value">₦{{ total_savings|floatformat:0|intcomma }}</div>
+                        <div class="stat-label">Total Savings</div>
+                        {% if savings_this_month > 0 %}
+                            <small class="text-success">
+                                <i class="fas fa-arrow-up"></i> +₦{{ savings_this_month|floatformat:0|intcomma }} this month
+                            </small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Loans -->
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stat-card warning">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                        <div class="stat-value">{{ active_loans|floatformat:0 }}</div>
+                        <div class="stat-label">Active Loans</div>
+                        {% if overdue_loans > 0 %}
+                            <small class="text-danger">
+                                <i class="fas fa-exclamation-triangle"></i> {{ overdue_loans }} overdue
+                            </small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Net Cash Flow
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="stat-card {% if net_cash_flow >= 0 %}success{% else %}danger{% endif %}">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="ms-3 flex-grow-1">
+                        <div class="stat-value">₦{{ net_cash_flow|floatformat:0|intcomma }}</div>
+                        <div class="stat-label">Net Cash Flow</div>
+                        <small class="{% if net_cash_flow >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            <i class="fas fa-arrow-{% if net_cash_flow >= 0 %}up{% else %}down{% endif %}"></i> This month
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div> -->
+    </div>
+
+    <!-- Enhanced Loan Analytics -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Loan Analytics & Progress Tracking
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Loan Status Overview -->
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Pending Applications</h6>
+                                    <h4 class="text-warning">{{ pending_loan_applications }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Approved (Ready to Disburse)</h6>
+                                    <h4 class="text-info">{{ approved_loans }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Active Loans</h6>
+                                    <h4 class="text-primary">{{ active_loans }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Completed Loans</h6>
+                                    <h4 class="text-success">{{ completed_loans }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Loan Phase Breakdown -->
+                    <div class="row mt-3">
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-percentage me-2"></i>
+                                        Interest Phase
+                                    </h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <h3 class="text-warning">{{ interest_phase_loans }}</h3>
+                                    <small class="text-muted">Loans paying interest first</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-coins me-2"></i>
+                                        Principal Phase
+                                    </h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <h3 class="text-primary">{{ principal_phase_loans }}</h3>
+                                    <small class="text-muted">Loans paying principal</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-check-circle me-2"></i>
+                                        Completed
+                                    </h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <h3 class="text-success">{{ completed_loans }}</h3>
+                                    <small class="text-muted">Fully repaid loans</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Financial Summary -->
+                    <div class="row mt-3">
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Total Interest Earned</h6>
+                                    <h4 class="text-success">₦{{ total_loan_interest_earned|floatformat:2|intcomma }}</h4>
+                                    <small class="text-muted">From all loan repayments</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Total Principal Repaid</h6>
+                                    <h4 class="text-info">₦{{ total_loan_principal_repaid|floatformat:2|intcomma }}</h4>
+                                    <small class="text-muted">Principal amount recovered</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Recent Activities -->
+    <div class="row">
+        <!-- Savings Trend Chart -->
+        <div class="col-xl-8 col-lg-7 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-area me-2"></i>
+                        Monthly Savings Trend
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="savingsChart"></canvas>
+                    </div>
+                </div>
+        </div>
+    </div>
+
+    <!-- Available Balance Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                <div class="card-body text-white">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                <div class="me-4">
+                                    <i class="fas fa-wallet fa-3x opacity-75"></i>
+                                </div>
+                                <div>
+                                    <h3 class="mb-1">Available Balance</h3>
+                                    <h2 class="display-5 fw-bold mb-0">
+                                        ₦{{ available_balance|floatformat:2|intcomma }}
+                                    </h2>
+                                    <p class="mb-0 opacity-75">Money available for new loans and disbursements</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="text-white-50">
+                                <small><i class="fas fa-info-circle me-1"></i>Savings minus disbursed loans</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+        <div class="col-xl-4 col-lg-5 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if user.role == 'admin' or user.role == 'manager' or user.role == 'staff' %}
+                            <a href="#" class="btn btn-primary">
+                                <i class="fas fa-user-plus me-2"></i>Register New Member
+                            </a>
+                            <a href="#" class="btn btn-success">
+                                <i class="fas fa-plus-circle me-2"></i>Record Savings Deposit
+                            </a>
+                            <a href="#" class="btn btn-warning">
+                                <i class="fas fa-money-check me-2"></i>Process Loan Repayment
+                            </a>
+                            <a href="#" class="btn btn-info">
+                                <i class="fas fa-exchange-alt me-2"></i>Add Transaction
+                            </a>
+                        {% endif %}
+                        
+                        <!-- Member Dashboard Link -->
+                        {% if user.role == 'member' %}
+                            <a href="{% url 'dashboard:member_dashboard' %}" class="btn btn-primary">
+                                <i class="fas fa-tachometer-alt me-2"></i>My Dashboard
+                            </a>
+                            <a href="{% url 'loans:apply' %}" class="btn btn-success">
+                                <i class="fas fa-hand-holding-usd me-2"></i>Apply for Loan
+                            </a>
+                        {% endif %}
+                        
+                        <a href="{% url 'reports:balance_sheet' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-file-alt me-2"></i>Financial Reports
+                        </a>
+                        
+                        <!-- Export Dropdown -->
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-download me-2"></i>Quick Export
+                            </button>
+                            <ul class="dropdown-menu w-100">
+                                <li><a class="dropdown-item" href="{% url 'exports:members_excel' %}">
+                                    <i class="fas fa-users me-2"></i>Members (Excel)
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'exports:savings_excel' %}">
+                                    <i class="fas fa-piggy-bank me-2"></i>Savings (Excel)
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'exports:financial_summary_excel' %}">
+                                    <i class="fas fa-chart-pie me-2"></i>Financial Summary
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts & Notifications -->
+            {% if user.role == 'admin' or user.role == 'manager' or user.role == 'staff' %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bell me-2"></i>
+                        Alerts & Notifications
+                    </h6>
+                </div>
+                <div class="card-body">
+                    {% if pending_loan_applications > 0 %}
+                        <div class="alert alert-warning py-2 mb-2">
+                            <small>
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                {{ pending_loan_applications }} pending loan application{{ pending_loan_applications|pluralize }}
+                            </small>
+                        </div>
+                    {% endif %}
+                    
+                    {% if overdue_loans > 0 %}
+                        <div class="alert alert-danger py-2 mb-2">
+                            <small>
+                                <i class="fas fa-exclamation-circle me-1"></i>
+                                {{ overdue_loans }} overdue loan{{ overdue_loans|pluralize }}
+                            </small>
+                        </div>
+                    {% endif %}
+                    
+                    {% if not pending_loan_applications and not overdue_loans %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <small>All systems normal</small>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="row">
+        <!-- Recent Transactions -->
+        <div class="col-xl-4 col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-exchange-alt me-2"></i>
+                        Recent Transactions
+                    </h6>
+                    <a href="{% url 'transactions:list' %}" class="btn btn-sm btn-outline-light">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_transactions or recent_savings_transactions %}
+                        <div class="list-group list-group-flush">
+                            <!-- Regular Transactions -->
+                            {% for transaction in recent_transactions %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">{{ transaction.description|truncatechars:30 }}</h6>
+                                            <small class="text-muted">{{ transaction.transaction_date|timesince }} ago</small>
+                                        </div>
+                                        <span class="badge bg-{% if transaction.transaction_type == 'income' %}success{% elif transaction.transaction_type == 'expense' %}danger{% else %}primary{% endif %}">
+                                            ₦{{ transaction.amount|floatformat:0|intcomma }}
+                                        </span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            
+                            <!-- Savings Transactions -->
+                            {% for transaction in recent_savings_transactions %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">
+                                                {{ transaction.get_transaction_type_display }} - {{ transaction.savings_account.member.user.get_full_name }}
+                                            </h6>
+                                            <small class="text-muted">{{ transaction.transaction_date|timesince }} ago</small>
+                                        </div>
+                                        <span class="badge bg-{% if transaction.transaction_type == 'withdrawal' %}danger{% elif transaction.transaction_type == 'deposit' or transaction.transaction_type == 'voluntary' or transaction.transaction_type == 'compulsory' %}success{% else %}info{% endif %}">
+                                            ₦{{ transaction.amount|floatformat:0|intcomma }}
+                                        </span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-inbox fa-2x mb-2"></i>
+                            <p>No recent transactions</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Loan Applications -->
+        <div class="col-xl-4 col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>
+                        Pending Applications
+                    </h6>
+                    <a href="#" class="btn btn-sm btn-outline-light">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_loan_applications %}
+                        <div class="list-group list-group-flush">
+                            {% for loan in recent_loan_applications %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">{{ loan.member.user.get_full_name }}</h6>
+                                            <small class="text-muted">{{ loan.application_date|timesince }} ago</small>
+                                        </div>
+                                        <span class="badge bg-warning">
+                                            ₦{{ loan.requested_amount|floatformat:0|intcomma }}
+                                        </span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-inbox fa-2x mb-2"></i>
+                            <p>No pending applications</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Repayments -->
+        <div class="col-xl-4 col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-credit-card me-2"></i>
+                        Recent Repayments
+                    </h6>
+                    <a href="#" class="btn btn-sm btn-outline-light">View All</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_repayments %}
+                        <div class="list-group list-group-flush">
+                            {% for repayment in recent_repayments %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">{{ repayment.loan.member.user.get_full_name }}</h6>
+                                            <small class="text-muted">{{ repayment.payment_date|timesince }} ago</small>
+                                        </div>
+                                        <span class="badge bg-success">
+                                            ₦{{ repayment.amount|floatformat:0|intcomma }}
+                                        </span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4 text-muted">
+                            <i class="fas fa-inbox fa-2x mb-2"></i>
+                            <p>No recent repayments</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Amount Breakdown Modal -->
+<div class="modal fade" id="amountBreakdownModal" tabindex="-1" aria-labelledby="amountBreakdownModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="amountBreakdownModalLabel">
+                    <i class="fas fa-chart-pie me-2"></i>Total Amount Breakdown
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary mb-3">Amount Components</h6>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-piggy-bank text-success me-2"></i>
+                                    <strong>Member Savings</strong>
+                                </div>
+                                <span class="badge bg-success fs-6">₦{{ amount_breakdown.member_savings|floatformat:2|intcomma }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-hand-holding-usd text-danger me-2"></i>
+                                    <strong>Disbursed Loans</strong>
+                                    <br><small class="text-muted">Total amount given out as loans</small>
+                                </div>
+                                <span class="badge bg-danger fs-6">₦{{ amount_breakdown.disbursed_loans|floatformat:2|intcomma }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-wallet text-primary me-2"></i>
+                                    <strong>Available Cash</strong>
+                                    <br><small class="text-muted">Total balance - disbursed loans</small>
+                                </div>
+                                <span class="badge bg-primary fs-6">₦{{ amount_breakdown.available_balance|floatformat:2|intcomma }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-receipt text-danger me-2"></i>
+                                    <strong>Total Expenses</strong>
+                                    <br><small class="text-muted">All expense transactions</small>
+                                </div>
+                                <span class="badge bg-danger fs-6">-₦{{ amount_breakdown.total_expenses|floatformat:2|intcomma }}</span>
+                            </div>
+                            <!-- <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-percentage text-warning me-2"></i>
+                                    <strong>Total Interest Earned</strong>
+                                    <br><small class="text-muted">10% on disbursed + repaid interest</small>
+                                </div>
+                                <span class="badge bg-warning fs-6">₦{{ amount_breakdown.loan_interest_earned|floatformat:2|intcomma }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-calculator text-warning me-2"></i>
+                                    <strong>10% Interest on Disbursed</strong>
+                                    <br><small class="text-muted">Immediate interest on loans</small>
+                                </div>
+                                <span class="badge bg-warning fs-6">₦{{ amount_breakdown.disbursed_loans_interest|floatformat:2|intcomma }}</span>
+                            </div> -->
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-money-bill-wave text-warning me-2"></i>
+                                    <strong>Interest from Repayments</strong>
+                                    <br><small class="text-muted">Interest portion of payments</small>
+                                </div>
+                                <span class="badge bg-warning fs-6">₦{{ amount_breakdown.repaid_interest|floatformat:2|intcomma }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-user-plus text-info me-2"></i>
+                                    <strong>Registration Fees</strong>
+                                </div>
+                                <span class="badge bg-info fs-6">₦{{ amount_breakdown.registration_fees|floatformat:2|intcomma }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-coins text-secondary me-2"></i>
+                                    <strong>Other Income</strong>
+                                    <br><small class="text-muted">General transactions + savings interest</small>
+                                </div>
+                                <span class="badge bg-secondary fs-6">₦{{ amount_breakdown.other_income|floatformat:2|intcomma }}</span>
+                            </div>
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-piggy-bank text-secondary me-2"></i>
+                                    <strong>Savings Interest</strong>
+                                    <br><small class="text-muted">Interest from savings accounts</small>
+                                </div>
+                                <span class="badge bg-secondary fs-6">₦{{ amount_breakdown.savings_income|floatformat:2|intcomma }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary mb-3">Visual Breakdown</h6>
+                        <canvas id="amountBreakdownChart" width="300" height="300"></canvas>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-primary d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0">Total Cooperative Balance</h5>
+                                <small class="text-muted">Member Savings + Interest + Registration + Other Income</small>
+                            </div>
+                            <h3 class="mb-0 text-primary">₦{{ amount_breakdown.total_cooperative_balance|floatformat:2|intcomma }}</h3>
+                        </div>
+                        <div class="alert alert-success d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-0">Available Cash</h5>
+                                <small class="text-muted">Total Balance - Disbursed Loans</small>
+                            </div>
+                            <h3 class="mb-0 text-success">₦{{ amount_breakdown.available_balance|floatformat:2|intcomma }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="exportBreakdown()">
+                    <i class="fas fa-download me-2"></i>Export Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Savings Trend Chart
+const ctx = document.getElementById('savingsChart').getContext('2d');
+const savingsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [{% for data in monthly_savings_data %}'{{ data.month }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Monthly Savings',
+            data: [{% for data in monthly_savings_data %}{{ data.amount }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: window.chartColors.success,
+            backgroundColor: window.chartColors.success + '20',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: window.chartColors.success,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 6,
+            pointHoverRadius: 8
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '₦' + value.toLocaleString();
+                    }
+                },
+                grid: {
+                    color: '#f0f0f0'
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                }
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        },
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return 'Savings: ₦' + context.parsed.y.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Auto-refresh dashboard data every 2 minutes
+setInterval(function() {
+    if (!document.hidden) {
+        // Update statistics without full page reload
+        fetch(window.location.href, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Update only specific sections
+            console.log('Dashboard data refreshed');
+        });
+    }
+}, 120000); // 2 minutes
+
+// Amount Breakdown Pie Chart
+document.getElementById('amountBreakdownModal').addEventListener('shown.bs.modal', function () {
+    const ctx = document.getElementById('amountBreakdownChart').getContext('2d');
+    
+    // Destroy existing chart if it exists
+    if (window.amountBreakdownChart) {
+        window.amountBreakdownChart.destroy();
+    }
+    
+    window.amountBreakdownChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Available Cash', 'Disbursed Loans', 'Expenses', 'Loan Interest', 'Registration Fees', 'Other Income'],
+            datasets: [{
+        data: [
+            {{ amount_breakdown.available_balance }},
+            {{ amount_breakdown.disbursed_loans }},
+            {{ amount_breakdown.total_expenses }},
+            {{ amount_breakdown.loan_interest_earned }},
+            {{ amount_breakdown.registration_fees }},
+            {{ amount_breakdown.other_income }}
+        ],
+                backgroundColor: [
+                    '#007bff',  // Available Cash
+                    '#dc3545',  // Disbursed Loans
+                    '#fd7e14',  // Expenses
+                    '#ffc107',  // Loan Interest
+                    '#17a2b8',  // Registration Fees
+                    '#6c757d'   // Other Income
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(1);
+                            return context.label + ': ₦' + value.toLocaleString() + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+
+// Export breakdown function
+function exportBreakdown() {
+    // Create a simple CSV export
+    const data = [
+        ['Component', 'Amount (₦)'],
+        ['Member Savings', {{ amount_breakdown.member_savings }}],
+        ['Disbursed Loans', {{ amount_breakdown.disbursed_loans }}],
+        ['Total Expenses', -{{ amount_breakdown.total_expenses }}],
+        ['Available Cash', {{ amount_breakdown.available_balance }}],
+        ['Interest from Repayments', {{ amount_breakdown.repaid_interest }}],
+        ['Registration Fees', {{ amount_breakdown.registration_fees }}],
+        ['Other Income', {{ amount_breakdown.other_income }}],
+        ['Savings Interest', {{ amount_breakdown.savings_income }}],
+        ['Total Cooperative Balance', {{ amount_breakdown.total_cooperative_balance }}]
+    ];
+    
+    const csvContent = data.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'cooperative_amount_breakdown.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// Balance toggle function
+function toggleBalance() {
+    const amountDisplay = document.querySelector('.amount-display');
+    const amountHidden = document.querySelector('.amount-hidden');
+    const balanceIcon = document.getElementById('balanceIcon');
+    
+    if (amountDisplay.style.display === 'none') {
+        // Show balance
+        amountDisplay.style.display = 'inline';
+        amountHidden.style.display = 'none';
+        balanceIcon.className = 'fas fa-eye';
+    } else {
+        // Hide balance
+        amountDisplay.style.display = 'none';
+        amountHidden.style.display = 'inline';
+        balanceIcon.className = 'fas fa-eye-slash';
+    }
+}
+</script>
+{% endblock %}

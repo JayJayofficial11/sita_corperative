@@ -1,0 +1,92 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Quick Transaction - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="h4 mb-1">Quick Transaction</h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'transactions:list' %}">Transactions</a></li>
+                        <li class="breadcrumb-item active">Quick Entry</li>
+                    </ol>
+                </nav>
+            </div>
+            <div>
+                <a href="{% url 'transactions:list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to List
+                </a>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-zap me-2"></i>
+                            Quick Transaction Entry
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Use this form for quick transaction entries. For more complex transactions, use the <a href="{% url 'transactions:add' %}">full transaction form</a>.
+                        </div>
+
+                        <form method="post">
+                            {% csrf_token %}
+                            {% crispy form %}
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Quick Transaction Types -->
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-plus-circle me-2"></i>Income Transactions
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled mb-0">
+                                    <li><i class="fas fa-dot-circle text-success me-2"></i>Member deposits</li>
+                                    <li><i class="fas fa-dot-circle text-success me-2"></i>Loan repayments</li>
+                                    <li><i class="fas fa-dot-circle text-success me-2"></i>Registration fees</li>
+                                    <li><i class="fas fa-dot-circle text-success me-2"></i>Interest income</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-danger">
+                            <div class="card-header bg-danger text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-minus-circle me-2"></i>Expense Transactions
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-unstyled mb-0">
+                                    <li><i class="fas fa-dot-circle text-danger me-2"></i>Loan disbursements</li>
+                                    <li><i class="fas fa-dot-circle text-danger me-2"></i>Withdrawal payments</li>
+                                    <li><i class="fas fa-dot-circle text-danger me-2"></i>Operating expenses</li>
+                                    <li><i class="fas fa-dot-circle text-danger me-2"></i>Administrative costs</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

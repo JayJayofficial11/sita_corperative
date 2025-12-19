@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Cooperative Management System</title>
+    {% load static %}
+    {% load django_bootstrap5 %}
+    
+    <!-- Bootstrap 5 CSS -->
+    {% bootstrap_css %}
+    
+    <!-- Font Awesome Icons - Offline Fallback -->
+    <link rel="stylesheet" href="{% static 'css/font-awesome-fallback.css' %}">
+    
+    <!-- Google Fonts - Using system fonts for offline compatibility -->
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+    </style>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h2 class="mb-0">
+                    <i class="fas fa-handshake mb-3"></i>
+                    <br>SITACMS
+                </h2>
+                <p class="mb-0">Cooperative Management System</p>
+            </div>
+            
+            <div class="login-body">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                <form method="post" id="loginForm">
+                    {% csrf_token %}
+                    
+                    <div class="form-floating mb-3">
+                        <input type="text" 
+                               class="form-control" 
+                               id="id_username" 
+                               name="username" 
+                               placeholder="Username"
+                               required>
+                        <label for="id_username">
+                            <i class="fas fa-user me-2"></i>Username
+                        </label>
+                    </div>
+                    
+                    <div class="form-floating mb-3">
+                        <input type="password" 
+                               class="form-control" 
+                               id="id_password" 
+                               name="password" 
+                               placeholder="Password"
+                               required>
+                        <label for="id_password">
+                            <i class="fas fa-lock me-2"></i>Password
+                        </label>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="remember_me" name="remember_me">
+                        <label class="form-check-label" for="remember_me">
+                            Remember me
+                        </label>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary py-2" id="loginBtn">
+                            <i class="fas fa-sign-in-alt me-2"></i>
+                            Sign In
+                        </button>
+                    </div>
+                    
+                    {% if form.errors %}
+                        <div class="alert alert-danger mt-3" role="alert">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    {{ error }}<br>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </form>
+                
+                <div class="text-center mt-4">
+                    <small class="text-muted">
+                        Forgot your password? Contact your administrator.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    {% bootstrap_javascript %}
+    
+    <!-- Simple login JS -->
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            const btn = document.getElementById('loginBtn');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Signing in...';
+            btn.disabled = true;
+        });
+    </script>
+</body>
+</html>

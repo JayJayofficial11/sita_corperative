@@ -1,0 +1,209 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Transaction Details - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="h4 mb-1">Transaction Details</h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'transactions:list' %}">Transactions</a></li>
+                        <li class="breadcrumb-item active">{{ transaction.transaction_id }}</li>
+                    </ol>
+                </nav>
+            </div>
+            <div>
+                <a href="{% url 'transactions:list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Transaction Information -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-receipt me-2"></i>
+                            Transaction #{{ transaction.transaction_id }}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Date:</strong> {{ transaction.transaction_date|date:"M d, Y H:i" }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Amount:</strong> 
+                                <span class="badge bg-success fs-6">${{ transaction.amount|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <strong>Type:</strong> {{ transaction.get_transaction_type_display }}
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Status:</strong> 
+                                <span class="badge {% if transaction.status == 'completed' %}bg-success{% elif transaction.status == 'pending' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                    {{ transaction.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Description:</strong><br>
+                            {{ transaction.description }}
+                        </div>
+                        {% if transaction.notes %}
+                        <div class="mb-3">
+                            <strong>Notes:</strong><br>
+                            {{ transaction.notes }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Transaction Entries -->
+                <div class="card shadow-sm mt-4">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-list me-2"></i>
+                            Transaction Entries
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% if entries %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Account</th>
+                                        <th>Type</th>
+                                        <th>Amount</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for entry in entries %}
+                                    <tr>
+                                        <td>{{ entry.account.code }} - {{ entry.account.name }}</td>
+                                        <td>
+                                            <span class="badge {% if entry.entry_type == 'debit' %}bg-danger{% else %}bg-success{% endif %}">
+                                                {{ entry.get_entry_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>${{ entry.amount|floatformat:2 }}</td>
+                                        <td>{{ entry.description|default:"-" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-info">
+                                        <th colspan="2">Totals</th>
+                                        <th>Debits: ${{ total_debits|floatformat:2 }}</th>
+                                        <th>Credits: ${{ total_credits|floatformat:2 }}</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No transaction entries found.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Related Information -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Additional Information
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        {% if transaction.member %}
+                        <div class="mb-3">
+                            <strong>Related Member:</strong><br>
+                            <a href="{% url 'members:detail' transaction.member.pk %}" class="text-decoration-none">
+                                {{ transaction.member.full_name }}
+                            </a>
+                        </div>
+                        {% endif %}
+                        
+                        {% if transaction.loan %}
+                        <div class="mb-3">
+                            <strong>Related Loan:</strong><br>
+                            <a href="#" class="text-decoration-none">
+                                {{ transaction.loan.loan_id }}
+                            </a>
+                        </div>
+                        {% endif %}
+                        
+                        {% if transaction.savings_account %}
+                        <div class="mb-3">
+                            <strong>Related Savings:</strong><br>
+                            <a href="#" class="text-decoration-none">
+                                {{ transaction.savings_account.account_number }}
+                            </a>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="mb-3">
+                            <strong>Created By:</strong><br>
+                            {{ transaction.created_by.get_full_name|default:transaction.created_by.username }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Created:</strong><br>
+                            {{ transaction.created_at|date:"M d, Y H:i" }}
+                        </div>
+                        
+                        {% if transaction.updated_at != transaction.created_at %}
+                        <div class="mb-3">
+                            <strong>Last Updated:</strong><br>
+                            {{ transaction.updated_at|date:"M d, Y H:i" }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card shadow-sm mt-3">
+                    <div class="card-header">
+                        <h6 class="card-title mb-0">
+                            <i class="fas fa-bolt me-2"></i>
+                            Quick Actions
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            {% if transaction.status == 'completed' %}
+                            <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
+                                <i class="fas fa-print me-2"></i>Print Receipt
+                            </button>
+                            {% endif %}
+                            
+                            {% if user.role == 'admin' or user.role == 'manager' %}
+                            <a href="{% url 'transactions:add' %}" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-plus me-2"></i>New Transaction
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

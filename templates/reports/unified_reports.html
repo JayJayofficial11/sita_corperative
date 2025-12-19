@@ -1,0 +1,623 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Unified Reports - Cooperative Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    .report-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    .report-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border-left: 4px solid #667eea;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 10px 10px 0 0;
+        margin-bottom: 0;
+        font-weight: 600;
+    }
+    
+    .section-content {
+        background: white;
+        border-radius: 0 0 10px 10px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+    
+    .filter-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .table-responsive {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .table th {
+        background: #667eea;
+        color: white;
+        border: none;
+        font-weight: 600;
+    }
+    
+    .table td {
+        vertical-align: middle;
+        border-color: #e9ecef;
+    }
+    
+    .badge-status {
+        padding: 8px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .badge-active { background: #d4edda; color: #155724; }
+    .badge-pending { background: #fff3cd; color: #856404; }
+    .badge-overdue { background: #f8d7da; color: #721c24; }
+    .badge-completed { background: #d1ecf1; color: #0c5460; }
+    
+    .export-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .export-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="report-card text-center">
+                <h1 class="mb-3">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Unified Financial Reports
+                </h1>
+                <p class="mb-0">Comprehensive overview of cooperative financial health and performance</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="filter-section">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="month" class="form-label">Select Month</label>
+                        <select name="month" id="month" class="form-select">
+                            {% for value, name in month_choices %}
+                                <option value="{{ value }}" {% if value == selected_month %}selected{% endif %}>
+                                    {{ name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="year" class="form-label">Select Year</label>
+                        <select name="year" id="year" class="form-select">
+                            {% for year in year_choices %}
+                                <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>
+                                    {{ year }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-filter me-1"></i>Apply Filter
+                        </button>
+                        <a href="{% url 'reports:unified' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-refresh me-1"></i>Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Overview -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="section-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-coins me-2"></i>
+                    Financial Overview
+                </h4>
+            </div>
+            <div class="section-content">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-success">₦{{ total_cooperative_balance|floatformat:2 }}</div>
+                            <div class="stat-label">Total Cooperative Balance</div>
+                            <small class="text-muted">All cooperative money</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-primary">₦{{ available_balance|floatformat:2 }}</div>
+                            <div class="stat-label">Available Balance</div>
+                            <small class="text-muted">Available for new loans</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-info">₦{{ total_outstanding_loans|floatformat:2 }}</div>
+                            <div class="stat-label">Outstanding Loans</div>
+                            <small class="text-muted">Money owed to cooperative</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Loan Repayment Information -->
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-info">₦{{ total_loan_repayments|floatformat:2 }}</div>
+                            <div class="stat-label">Total Repayments</div>
+                            <small class="text-muted">All loan repayments</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-success">₦{{ automatic_repayments|floatformat:2 }}</div>
+                            <div class="stat-label">Auto Repayments</div>
+                            <small class="text-muted">From savings</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-warning">₦{{ total_collateral|floatformat:2 }}</div>
+                            <div class="stat-label">Collateral Held</div>
+                            <small class="text-muted">Pre-loan savings</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-primary">{{ members_with_loans }}</div>
+                            <div class="stat-label">Members with Loans</div>
+                            <small class="text-muted">Active borrowers</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-primary">₦{{ total_savings|floatformat:2 }}</div>
+                            <div class="stat-label">Member Savings</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-warning">₦{{ total_disbursed_loans|floatformat:2 }}</div>
+                            <div class="stat-label">Disbursed Loans</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-info">₦{{ total_interest_earned|floatformat:2 }}</div>
+                            <div class="stat-label">Interest Earned</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-secondary">₦{{ total_registration_fees|floatformat:2 }}</div>
+                            <div class="stat-label">Registration Fees</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Statistics -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="section-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    Monthly Statistics ({{ month_choices|slice:":1"|first|last }} {{ selected_year }})
+                </h4>
+            </div>
+            <div class="section-content">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-success">₦{{ monthly_savings|floatformat:2 }}</div>
+                            <div class="stat-label">Monthly Savings</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-warning">₦{{ monthly_loans|floatformat:2 }}</div>
+                            <div class="stat-label">Monthly Loans</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-info">₦{{ monthly_repayments|floatformat:2 }}</div>
+                            <div class="stat-label">Monthly Repayments</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="chart-container">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Monthly Trends ({{ selected_year }})
+                </h5>
+                <canvas id="monthlyChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Member & Loan Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="section-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    Member Statistics
+                </h5>
+            </div>
+            <div class="section-content">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-primary">{{ total_members }}</div>
+                            <div class="stat-label">Total Members</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-success">{{ active_members }}</div>
+                            <div class="stat-label">Active Members</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-card text-center">
+                    <div class="stat-number text-info">{{ new_members_month }}</div>
+                    <div class="stat-label">New Members This Month</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="section-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-hand-holding-usd me-2"></i>
+                    Loan Statistics
+                </h5>
+            </div>
+            <div class="section-content">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-primary">{{ total_loans }}</div>
+                            <div class="stat-label">Total Loans</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-success">{{ active_loans }}</div>
+                            <div class="stat-label">Active Loans</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-warning">{{ pending_loans }}</div>
+                            <div class="stat-label">Pending Loans</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card text-center">
+                            <div class="stat-number text-danger">{{ overdue_loans }}</div>
+                            <div class="stat-label">Overdue Loans</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Balance Sheet -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="section-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-balance-scale me-2"></i>
+                    Balance Sheet
+                </h4>
+            </div>
+            <div class="section-content">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">ASSETS</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Cash & Bank Accounts</td>
+                                    <td class="text-end">₦{{ cash_accounts|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Loan Receivables</td>
+                                    <td class="text-end">₦{{ loan_receivables|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Member Savings</td>
+                                    <td class="text-end">₦{{ total_savings|floatformat:2 }}</td>
+                                </tr>
+                                <tr class="table-primary">
+                                    <td><strong>Total Assets</strong></td>
+                                    <td class="text-end"><strong>₦{{ total_assets|floatformat:2 }}</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success">EQUITY</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td>Member Equity</td>
+                                    <td class="text-end">₦{{ member_equity|floatformat:2 }}</td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td><strong>Total Equity</strong></td>
+                                    <td class="text-end"><strong>₦{{ member_equity|floatformat:2 }}</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="section-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>
+                    Recent Transactions
+                </h5>
+            </div>
+            <div class="section-content">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Member</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in recent_transactions %}
+                            <tr>
+                                <td>{{ transaction.created_at|date:"M d" }}</td>
+                                <td>
+                                    <span class="badge badge-status badge-{{ transaction.transaction_type }}">
+                                        {{ transaction.transaction_type|title }}
+                                    </span>
+                                </td>
+                                <td>₦{{ transaction.amount|floatformat:2 }}</td>
+                                <td>{{ transaction.member.user.get_full_name|default:"N/A" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No recent transactions</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="section-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-invoice me-2"></i>
+                    Recent Loans
+                </h5>
+            </div>
+            <div class="section-content">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Member</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for loan in recent_loans %}
+                            <tr>
+                                <td>{{ loan.created_at|date:"M d" }}</td>
+                                <td>{{ loan.member.user.get_full_name|default:"N/A" }}</td>
+                                <td>₦{{ loan.approved_amount|floatformat:2 }}</td>
+                                <td>
+                                    <span class="badge badge-status badge-{{ loan.status }}">
+                                        {{ loan.status|title }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">No recent loans</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="section-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-download me-2"></i>
+                    Export Reports
+                </h4>
+            </div>
+            <div class="section-content text-center">
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="{% url 'reports:all_members_excel' %}" class="btn export-btn w-100 mb-2">
+                            <i class="fas fa-file-excel me-2"></i>Export All Members
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'reports:transaction_history' %}" class="btn export-btn w-100 mb-2">
+                            <i class="fas fa-file-alt me-2"></i>Transaction History
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'reports:balance_sheet' %}" class="btn export-btn w-100 mb-2">
+                            <i class="fas fa-balance-scale me-2"></i>Balance Sheet
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{% url 'reports:monthly' %}" class="btn export-btn w-100 mb-2">
+                            <i class="fas fa-calendar me-2"></i>Monthly Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/chart.min.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Monthly Chart
+    const ctx = document.getElementById('monthlyChart').getContext('2d');
+    const monthlyData = {{ monthly_breakdown|safe }};
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: monthlyData.map(item => item.month_name),
+            datasets: [{
+                label: 'Savings (₦)',
+                data: monthlyData.map(item => item.savings),
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                tension: 0.4,
+                fill: true
+            }, {
+                label: 'Loans (₦)',
+                data: monthlyData.map(item => item.loans),
+                borderColor: '#ffc107',
+                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Monthly Financial Trends'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₦' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

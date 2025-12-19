@@ -1,0 +1,376 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ member.user.get_full_name }} - Member Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Member Profile -->
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-body text-center">
+                {% if member.user.profile_picture %}
+                    <img src="{{ member.user.profile_picture.url }}" alt="Profile" class="rounded-circle mb-3" width="120" height="120" style="object-fit: cover;">
+                {% else %}
+                    <div class="bg-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
+                        <i class="fas fa-user fa-3x text-white"></i>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            No profile picture uploaded
+                        </small>
+                    </div>
+                {% endif %}
+                
+                <h4>{{ member.user.get_full_name }}</h4>
+                <p class="text-muted">{{ member.occupation|default:"N/A" }}</p>
+                
+                <div class="mb-3">
+                    {% if member.membership_status == 'active' %}
+                        <span class="badge bg-success fs-6">Active Member</span>
+                    {% elif member.membership_status == 'pending' %}
+                        <span class="badge bg-warning fs-6">Pending Approval</span>
+                    {% elif member.membership_status == 'suspended' %}
+                        <span class="badge bg-danger fs-6">Suspended</span>
+                    {% else %}
+                        <span class="badge bg-secondary fs-6">{{ member.membership_status|title }}</span>
+                    {% endif %}
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'members:edit' member.pk %}" class="btn btn-outline-primary">
+                        <i class="fas fa-edit me-2"></i>Edit Profile
+                    </a>
+                    <a href="{% url 'reports:member_report' member.pk %}" class="btn btn-outline-info">
+                        <i class="fas fa-file-alt me-2"></i>View Report
+                    </a>
+                    <button class="btn btn-outline-success" onclick="recordTransaction('savings')">
+                        <i class="fas fa-piggy-bank me-2"></i>Savings Transaction
+                    </button>
+                    <button class="btn btn-outline-warning" onclick="recordTransaction('loan')">
+                        <i class="fas fa-money-bill-wave me-2"></i>Loan Transaction
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contact Information -->
+        <div class="card shadow mt-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-address-card me-2"></i>Contact Information</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Email:</strong> {{ member.user.email }}</p>
+                <p><strong>Phone:</strong> {{ member.user.phone_number|default:"N/A" }}</p>
+                <p><strong>Address:</strong> {{ member.address|default:"N/A" }}</p>
+                <p><strong>City:</strong> {{ member.city|default:"N/A" }}</p>
+                <p><strong>State:</strong> {{ member.state|default:"N/A" }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Member Details and Activities -->
+    <div class="col-md-8">
+        <!-- Personal Information -->
+        <div class="card shadow mb-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-user me-2"></i>Personal Information</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Member ID:</strong> {{ member.member_id }}</p>
+                        <p><strong>Date of Birth:</strong> {{ member.date_of_birth|date:"M d, Y"|default:"N/A" }}</p>
+                        <p><strong>Gender:</strong> {{ member.get_gender_display|default:"N/A" }}</p>
+                        <p><strong>Marital Status:</strong> {{ member.get_marital_status_display|default:"N/A" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Membership Type:</strong> {{ member.membership_type.name|default:"Standard" }}</p>
+                        <p><strong>Join Date:</strong> {{ member.created_at|date:"M d, Y" }}</p>
+                        <p><strong>Employer:</strong> {{ member.employer|default:"N/A" }}</p>
+                        <p><strong>Monthly Savings:</strong> ₦{{ member.monthly_savings|floatformat:2|default:"N/A" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Financial Summary -->
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h4>₦{{ savings_balance|floatformat:2|default:"0.00" }}</h4>
+                        <small>Total Savings</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h4>₦{{ available_balance|floatformat:2|default:"0.00" }}</h4>
+                        <small>Available Balance</small>
+                    </div>
+                </div>
+            </div>
+            {% if has_active_loan %}
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h4>₦{{ collateral_amount|floatformat:2|default:"0.00" }}</h4>
+                        <small>Collateral (Held)</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <h4>₦{{ loan_balance|floatformat:2|default:"0.00" }}</h4>
+                        <small>Outstanding Loan</small>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-md-3">
+                <div class="card bg-secondary text-white">
+                    <div class="card-body text-center">
+                        <h4>₦{{ loan_balance|floatformat:2|default:"0.00" }}</h4>
+                        <small>Outstanding Loan</small>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <div class="col-md-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h4>₦{{ share_capital|floatformat:2|default:"0.00" }}</h4>
+                        <small>Share Capital</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activities Tabs -->
+        <div class="card shadow">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="activitiesTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="savings-tab" data-bs-toggle="tab" data-bs-target="#savings" type="button" role="tab">
+                            <i class="fas fa-piggy-bank me-1"></i>Savings
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="loans-tab" data-bs-toggle="tab" data-bs-target="#loans" type="button" role="tab">
+                            <i class="fas fa-money-bill-wave me-1"></i>Loans
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="transactions-tab" data-bs-toggle="tab" data-bs-target="#transactions" type="button" role="tab">
+                            <i class="fas fa-exchange-alt me-1"></i>Transactions
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="activitiesTabContent">
+                    <!-- Savings Tab -->
+                    <div class="tab-pane fade show active" id="savings" role="tabpanel">
+                        {% if savings_transactions %}
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Type</th>
+                                            <th>Amount</th>
+                                            <th>Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for transaction in savings_transactions %}
+                                        <tr>
+                                            <td>{{ transaction.created_at|date:"M d, Y" }}</td>
+                                            <td>
+                                                {% if transaction.transaction_type == 'compulsory' or transaction.transaction_type == 'voluntary' %}
+                                                    <span class="badge bg-success">{{ transaction.get_transaction_type_display }}</span>
+                                                {% elif transaction.transaction_type == 'withdrawal' %}
+                                                    <span class="badge bg-warning">{{ transaction.get_transaction_type_display }}</span>
+                                                {% elif transaction.transaction_type == 'loan_repayment' %}
+                                                    <span class="badge bg-info">{{ transaction.get_transaction_type_display }}</span>
+                                                {% elif transaction.transaction_type == 'interest' %}
+                                                    <span class="badge bg-primary">{{ transaction.get_transaction_type_display }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ transaction.get_transaction_type_display }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>₦{{ transaction.amount|floatformat:2 }}</td>
+                                            <td>₦{{ transaction.balance_after|floatformat:2 }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-muted text-center py-3">No savings transactions found.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Loans Tab -->
+                    <div class="tab-pane fade" id="loans" role="tabpanel">
+                        {% if member_loans %}
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Loan ID</th>
+                                            <th>Amount</th>
+                                            <th>Outstanding</th>
+                                            <th>Status</th>
+                                            <th>Due Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for loan in member_loans %}
+                                        <tr>
+                                            <td><a href="{% url 'loans:detail' loan.pk %}">{{ loan.loan_reference }}</a></td>
+                                            <td>₦{{ loan.loan_amount|floatformat:2 }}</td>
+                                            <td>₦{{ loan.outstanding_balance|floatformat:2 }}</td>
+                                            <td>
+                                                {% if loan.status == 'approved' %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% elif loan.status == 'pending' %}
+                                                    <span class="badge bg-warning">Pending</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ loan.status|title }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ loan.repayment_due_date|date:"M d, Y"|default:"N/A" }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-muted text-center py-3">No loan records found.</p>
+                        {% endif %}
+                        
+                        <!-- Loan Repayment Information -->
+                        {% if has_active_loan and loan_repayments %}
+                        <div class="mt-4">
+                            <h6 class="text-primary">
+                                <i class="fas fa-money-bill-wave me-2"></i>Recent Loan Repayments
+                            </h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Amount</th>
+                                            <th>Principal</th>
+                                            <th>Interest</th>
+                                            <th>Loan ID</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for repayment in loan_repayments %}
+                                        <tr>
+                                            <td>{{ repayment.created_at|date:"M d, Y" }}</td>
+                                            <td class="text-success">₦{{ repayment.amount|floatformat:2 }}</td>
+                                            <td>₦{{ repayment.repayment_principal|floatformat:2 }}</td>
+                                            <td>₦{{ repayment.repayment_interest|floatformat:2 }}</td>
+                                            <td>{{ repayment.related_loan.loan_id }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Transactions Tab -->
+                    <div class="tab-pane fade" id="transactions" role="tabpanel">
+                        {% if recent_transactions %}
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Description</th>
+                                            <th>Type</th>
+                                            <th>Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for transaction in recent_transactions %}
+                                        <tr>
+                                            <td>{{ transaction.created_at|date:"M d, Y" }}</td>
+                                            <td>{{ transaction.description }}</td>
+                                            <td>{{ transaction.transaction_type|title }}</td>
+                                            <td>₦{{ transaction.amount|floatformat:2 }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <p class="text-muted text-center py-3">No recent transactions found.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Emergency Contact -->
+{% if member.emergency_contact_name %}
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-phone me-2"></i>Emergency Contact</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Name:</strong> {{ member.emergency_contact_name }}</p>
+                <p><strong>Phone:</strong> {{ member.emergency_contact_phone|default:"N/A" }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-handshake me-2"></i>Guarantor Information</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Name:</strong> {{ member.guarantor_name|default:"N/A" }}</p>
+                <p><strong>Phone:</strong> {{ member.guarantor_phone|default:"N/A" }}</p>
+                <p><strong>Address:</strong> {{ member.guarantor_address|default:"N/A" }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Back Button -->
+<div class="row mt-3">
+    <div class="col-12">
+        <a href="{% url 'members:list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Members List
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function recordTransaction(type) {
+    if (type === 'savings') {
+        window.location.href = '{% url "savings:deposit" %}?member={{ member.pk }}';
+    } else if (type === 'loan') {
+        window.location.href = '{% url "loans:repayments" %}?member={{ member.pk }}';
+    }
+}
+</script>
+{% endblock %}

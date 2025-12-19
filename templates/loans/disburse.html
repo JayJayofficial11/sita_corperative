@@ -1,0 +1,702 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% load crispy_forms_tags %}
+
+{% block title %}Loan Disbursement - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-money-bill-wave me-2"></i>
+                    Loan Disbursement Center
+                </h5>
+                <div>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        <i class="fas fa-filter me-1"></i>Filter
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="bulkDisburse()">
+                        <i class="fas fa-hand-holding-usd me-1"></i>Bulk Disburse
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <!-- Disbursement Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ pending_disbursement }}</h4>
+                                <small>Pending Disbursement</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ disbursed_today }}</h4>
+                                <small>Disbursed Today</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ pending_amount|floatformat:0 }}</h4>
+                                <small>Pending Amount</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ disbursed_amount|floatformat:0 }}</h4>
+                                <small>Disbursed Today</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Approved Loans Table -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="selectAll" class="form-check-input">
+                                </th>
+                                <th>Loan ID</th>
+                                <th>Member</th>
+                                <th>Approved Amount</th>
+                                <th>Interest Rate</th>
+                                <th>Tenure</th>
+                                <th>Approval Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for loan in approved_loans %}
+                            <tr>
+                                <td>
+                                    {% if loan.status == 'approved' %}
+                                        <input type="checkbox" class="form-check-input loan-checkbox" value="{{ loan.id }}">
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'loans:detail' loan.id %}" class="text-decoration-none">
+                                        #{{ loan.id|stringformat:"05d" }}
+                                    </a>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-2">
+                                            {% if loan.member.user.profile.avatar %}
+                                                <img src="{{ loan.member.user.profile.avatar.url }}" alt="Avatar" class="rounded-circle" width="32" height="32">
+                                            {% else %}
+                                                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                                    <i class="fas fa-user text-white"></i>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <strong>{{ loan.member.user.get_full_name }}</strong><br>
+                                            <small class="text-muted">{{ loan.member.member_id }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <strong>₦{{ loan.approved_amount|floatformat:2 }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info">{{ loan.interest_rate }}%</span>
+                                </td>
+                                <td class="text-center">
+                                    {{ loan.tenure_months }} months
+                                </td>
+                                <td>{{ loan.approval_date|date:"M d, Y" }}</td>
+                                <td>
+                                    <span class="badge bg-{% if loan.status == 'approved' %}warning{% elif loan.status == 'disbursed' %}success{% elif loan.status == 'active' %}primary{% else %}secondary{% endif %}">
+                                        {{ loan.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if loan.status == 'approved' %}
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-success" onclick="disburseLoan('{{ loan.id }}')" title="Disburse">
+                                                <i class="fas fa-hand-holding-usd"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-info" onclick="viewLoanDetails('{{ loan.id }}')" title="View Details">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </div>
+                                    {% elif loan.status == 'disbursed' %}
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewDisbursementDetails('{{ loan.id }}')" title="View Disbursement">
+                                            <i class="fas fa-receipt"></i>
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="viewLoanDetails('{{ loan.id }}')" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-3x mb-3"></i><br>
+                                    No approved loans pending disbursement.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if approved_loans.has_other_pages %}
+                <nav>
+                    <ul class="pagination justify-content-center">
+                        {% if approved_loans.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ approved_loans.previous_page_number }}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for num in approved_loans.paginator.page_range %}
+                        <li class="page-item {% if approved_loans.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                        {% endfor %}
+                        
+                        {% if approved_loans.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ approved_loans.next_page_number }}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-filter me-2"></i>Filter Loans
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="get">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="status_filter" class="form-label">Status</label>
+                        <select class="form-select" name="status" id="status_filter">
+                            <option value="">All Statuses</option>
+                            <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Approved</option>
+                            <option value="disbursed" {% if request.GET.status == 'disbursed' %}selected{% endif %}>Disbursed</option>
+                            <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount_min" class="form-label">Minimum Amount</label>
+                        <input type="number" class="form-control" name="amount_min" id="amount_min" value="{{ request.GET.amount_min }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount_max" class="form-label">Maximum Amount</label>
+                        <input type="number" class="form-control" name="amount_max" id="amount_max" value="{{ request.GET.amount_max }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="date_from" class="form-label">Date From</label>
+                        <input type="date" class="form-control" name="date_from" id="date_from" value="{{ request.GET.date_from }}">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-2"></i>Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Disbursement Modal -->
+<div class="modal fade" id="disbursementModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-money-bill-wave me-2"></i>Disburse Loan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="disbursementForm">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        You are about to disburse loan <strong id="disbursementLoanId"></strong>
+                    </div>
+                    
+                    <!-- Loan Summary -->
+                    <div class="card bg-light mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Member:</strong> <span id="memberName"></span><br>
+                                    <strong>Approved Amount:</strong> <span id="approvedAmount"></span><br>
+                                    <strong>Interest Rate:</strong> <span id="interestRate"></span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Tenure:</strong> <span id="tenure"></span><br>
+                                    <strong>Monthly Payment:</strong> <span id="monthlyPayment"></span><br>
+                                    <strong>Total Repayment:</strong> <span id="totalRepayment"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="disbursement_method" class="form-label">Disbursement Method</label>
+                                <select class="form-select" id="disbursement_method" name="disbursement_method" required>
+                                    <option value="">Select method</option>
+                                    <option value="bank_transfer">Bank Transfer</option>
+                                    <option value="cash">Cash Payment</option>
+                                    <option value="check">Check</option>
+                                    <option value="mobile_money">Mobile Money</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="disbursement_date" class="form-label">Disbursement Date</label>
+                                <input type="date" class="form-control" id="disbursement_date" name="disbursement_date" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="bankDetails" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="bank_name" class="form-label">Bank Name</label>
+                                    <input type="text" class="form-control" id="bank_name" name="bank_name">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="account_number" class="form-label">Account Number</label>
+                                    <input type="text" class="form-control" id="account_number" name="account_number">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="account_name" class="form-label">Account Name</label>
+                            <input type="text" class="form-control" id="account_name" name="account_name">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="reference_number" class="form-label">Reference Number</label>
+                        <input type="text" class="form-control" id="reference_number" name="reference_number" placeholder="Transaction reference (auto-generated if empty)">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="disbursement_notes" class="form-label">Disbursement Notes</label>
+                        <textarea class="form-control" id="disbursement_notes" name="disbursement_notes" rows="3" placeholder="Optional notes for disbursement"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="notify_member" name="notify_member" checked>
+                            <label class="form-check-label" for="notify_member">
+                                Notify member of disbursement
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="confirm_disbursement" name="confirm_disbursement" required>
+                            <label class="form-check-label" for="confirm_disbursement">
+                                I confirm that the disbursement has been completed
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-money-bill-wave me-2"></i>Complete Disbursement
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Disbursement Modal -->
+<div class="modal fade" id="bulkDisbursementModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-hand-holding-usd me-2"></i>Bulk Disbursement
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    You have selected <span id="selectedCount">0</span> loans for bulk disbursement.
+                </div>
+                
+                <div class="mb-3">
+                    <label for="bulk_method" class="form-label">Disbursement Method</label>
+                    <select class="form-select" id="bulk_method" required>
+                        <option value="">Select method</option>
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="cash">Cash Payment</option>
+                        <option value="mobile_money">Mobile Money</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="bulk_date" class="form-label">Disbursement Date</label>
+                    <input type="date" class="form-control" id="bulk_date" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="bulk_notes" class="form-label">Bulk Disbursement Notes</label>
+                    <textarea class="form-control" id="bulk_notes" rows="3" placeholder="Notes for all selected disbursements"></textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="bulk_confirm" required>
+                        <label class="form-check-label" for="bulk_confirm">
+                            I confirm all selected disbursements have been completed
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="processBulkDisbursement()">
+                    <i class="fas fa-hand-holding-usd me-2"></i>Disburse Selected
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Disbursement Receipt Modal -->
+<div class="modal fade" id="receiptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-receipt me-2"></i>Disbursement Receipt
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="receiptContent">
+                <!-- Receipt content loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="printReceipt()">
+                    <i class="fas fa-print me-2"></i>Print Receipt
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentLoanId = null;
+
+// Set today's date as default
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('disbursement_date').value = today;
+    document.getElementById('bulk_date').value = today;
+});
+
+// Select all functionality
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.loan-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+    updateBulkActionButton();
+});
+
+// Individual checkbox change
+document.querySelectorAll('.loan-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', updateBulkActionButton);
+});
+
+function updateBulkActionButton() {
+    const selectedCount = document.querySelectorAll('.loan-checkbox:checked').length;
+    document.getElementById('selectedCount').textContent = selectedCount;
+}
+
+// Show/hide bank details based on disbursement method
+document.getElementById('disbursement_method').addEventListener('change', function() {
+    const bankDetails = document.getElementById('bankDetails');
+    if (this.value === 'bank_transfer') {
+        bankDetails.style.display = 'block';
+        bankDetails.querySelectorAll('input').forEach(input => input.required = true);
+    } else {
+        bankDetails.style.display = 'none';
+        bankDetails.querySelectorAll('input').forEach(input => input.required = false);
+    }
+});
+
+function disburseLoan(loanId) {
+    currentLoanId = loanId;
+    
+    // Load loan details
+    fetch(`{% url 'loans:loan_data' %}?id=${loanId}`)
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Received data:', data);
+        
+        // Check if there's an error in the response
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Show modal first, then populate data
+        const modal = new bootstrap.Modal(document.getElementById('disbursementModal'));
+        modal.show();
+        
+        // Wait a bit for modal to be fully rendered, then populate data
+        setTimeout(function() {
+            // Populate loan details
+            const loanIdElement = document.getElementById('disbursementLoanId');
+            const memberNameElement = document.getElementById('memberName');
+            const approvedAmountElement = document.getElementById('approvedAmount');
+            const interestRateElement = document.getElementById('interestRate');
+            const tenureElement = document.getElementById('tenure');
+            const monthlyPaymentElement = document.getElementById('monthlyPayment');
+            const totalRepaymentElement = document.getElementById('totalRepayment');
+            
+            console.log('Elements found:', {
+                loanIdElement: !!loanIdElement,
+                memberNameElement: !!memberNameElement,
+                approvedAmountElement: !!approvedAmountElement,
+                interestRateElement: !!interestRateElement,
+                tenureElement: !!tenureElement,
+                monthlyPaymentElement: !!monthlyPaymentElement,
+                totalRepaymentElement: !!totalRepaymentElement
+            });
+            
+            if (loanIdElement) loanIdElement.textContent = `#${data.loan_id}`;
+            if (memberNameElement) memberNameElement.textContent = data.member_name;
+            if (approvedAmountElement) approvedAmountElement.textContent = `₦${data.approved_amount ? data.approved_amount.toLocaleString() : '0'}`;
+            if (interestRateElement) interestRateElement.textContent = `10%`;
+            if (tenureElement) tenureElement.textContent = `22 months (maximum)`;
+            
+            // Calculate using new flexible system (10% interest added immediately)
+            const approvedAmount = data.approved_amount || 0;
+            const interestRate = 10; // Fixed 10% interest
+            const tenure = 22; // Fixed 22 months maximum
+            
+            // New system: 10% interest added immediately
+            const interestAmount = approvedAmount * 0.10;
+            const totalRepayment = approvedAmount + interestAmount;
+            
+            // Flexible monthly payment (minimum required, can pay more)
+            const minimumMonthlyPayment = totalRepayment / tenure;
+            
+            if (monthlyPaymentElement) monthlyPaymentElement.textContent = `₦${minimumMonthlyPayment.toLocaleString()} (minimum)`;
+            if (totalRepaymentElement) totalRepaymentElement.textContent = `₦${totalRepayment.toLocaleString()}`;
+            
+            // Pre-fill bank details if available
+            if (data.bank_details) {
+                const bankNameElement = document.getElementById('bank_name');
+                const accountNumberElement = document.getElementById('account_number');
+                const accountNameElement = document.getElementById('account_name');
+                
+                if (bankNameElement) bankNameElement.value = data.bank_details.bank_name || '';
+                if (accountNumberElement) accountNumberElement.value = data.bank_details.account_number || '';
+                if (accountNameElement) accountNameElement.value = data.bank_details.account_name || '';
+            }
+        }, 500); // Wait 500ms for modal to be fully rendered
+    })
+    .catch(error => {
+        console.error('Error loading loan details:', error);
+        showAlert('danger', 'Failed to load loan details. Please try again.');
+        
+        // Show modal with error message
+        const modal = new bootstrap.Modal(document.getElementById('disbursementModal'));
+        modal.show();
+        setTimeout(function() {
+            const loanIdElement = document.getElementById('disbursementLoanId');
+            if (loanIdElement) loanIdElement.textContent = `#${loanId}`;
+            
+            const memberNameElement = document.getElementById('memberName');
+            if (memberNameElement) memberNameElement.textContent = 'Error loading details';
+        }, 500);
+    });
+}
+
+function viewLoanDetails(loanId) {
+    window.location.href = `/loans/${loanId}/`;
+}
+
+function viewDisbursementDetails(loanId) {
+    // Load disbursement receipt
+    fetch(`{% url 'loans:disbursement_receipt' %}?id=${loanId}`)
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('receiptContent').innerHTML = html;
+        const receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
+        receiptModal.show();
+    })
+    .catch(error => {
+        showAlert('danger', 'Failed to load disbursement details.');
+    });
+}
+
+function bulkDisburse() {
+    const selectedLoans = document.querySelectorAll('.loan-checkbox:checked');
+    if (selectedLoans.length === 0) {
+        showAlert('warning', 'Please select loans to disburse.');
+        return;
+    }
+    
+    const bulkModal = new bootstrap.Modal(document.getElementById('bulkDisbursementModal'));
+    bulkModal.show();
+}
+
+function processBulkDisbursement() {
+    const selectedLoans = Array.from(document.querySelectorAll('.loan-checkbox:checked'))
+        .map(checkbox => checkbox.value);
+    
+    const data = {
+        loan_ids: selectedLoans,
+        disbursement_method: document.getElementById('bulk_method').value,
+        disbursement_date: document.getElementById('bulk_date').value,
+        notes: document.getElementById('bulk_notes').value
+    };
+    
+    fetch('{% url "loans:bulk_disburse" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('success', `${data.disbursed_count} loans disbursed successfully.`);
+            const bulkModal = bootstrap.Modal.getInstance(document.getElementById('bulkDisbursementModal'));
+            if (bulkModal) bulkModal.hide();
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showAlert('danger', 'Bulk disbursement failed: ' + data.error);
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'An error occurred during bulk disbursement.');
+    });
+}
+
+function printReceipt() {
+    const printContent = document.getElementById('receiptContent').innerHTML;
+    const printWindow = window.open('', '', 'height=600,width=800');
+    printWindow.document.write('<html><head><title>Disbursement Receipt</title>');
+    printWindow.document.write('<link href="{% static "css/bootstrap.min.css" %}" rel="stylesheet">');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(printContent);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
+}
+
+// Disbursement form submission
+document.getElementById('disbursementForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    console.log('DEBUG: Form submitted for loan ID:', currentLoanId);
+    
+    const formData = new FormData(this);
+    formData.append('loan_id', currentLoanId);
+    
+    console.log('DEBUG: Form data:', Object.fromEntries(formData));
+    
+    fetch(`/loans/${currentLoanId}/disburse/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        console.log('DEBUG: Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('DEBUG: Response data:', data);
+        if (data.success) {
+            showAlert('success', 'Loan disbursed successfully!');
+            const disbursementModal = bootstrap.Modal.getInstance(document.getElementById('disbursementModal'));
+            if (disbursementModal) disbursementModal.hide();
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            showAlert('danger', 'Disbursement failed: ' + (data.message || data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('DEBUG: Error during disbursement:', error);
+        showAlert('danger', 'An error occurred during disbursement: ' + error.message);
+    });
+});
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.row');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

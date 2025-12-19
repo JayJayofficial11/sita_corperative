@@ -1,0 +1,658 @@
+{% extends 'base/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Loan Reports - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Loan Portfolio Reports & Analytics
+                </h5>
+                <div>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        <i class="fas fa-filter me-1"></i>Filter
+                    </button>
+                    <button class="btn btn-light btn-sm" onclick="exportReport()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <button class="btn btn-light btn-sm" onclick="printReport()">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <!-- Portfolio Overview -->
+                <div class="row mb-4">
+                    <div class="col-md-2">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ total_loans }}</h4>
+                                <small>Total Loans</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ portfolio_value|floatformat:0 }}</h4>
+                                <small>Portfolio Value</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ active_loans }}</h4>
+                                <small>Active Loans</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ overdue_loans }}</h4>
+                                <small>Overdue</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ recovery_rate }}%</h4>
+                                <small>Recovery Rate</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-secondary text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ avg_loan_size|floatformat:0 }}</h4>
+                                <small>Avg Loan Size</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts Section -->
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-chart-line me-2"></i>Loan Portfolio Trends
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="portfolioChart" height="100"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-chart-pie me-2"></i>Loan Status Distribution
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="statusChart" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Detailed Reports Tabs -->
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="reportsTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="performance-tab" data-bs-toggle="tab" data-bs-target="#performance-report" type="button" role="tab">
+                                    <i class="fas fa-chart-bar me-1"></i>Performance
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="risk-tab" data-bs-toggle="tab" data-bs-target="#risk-analysis" type="button" role="tab">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>Risk Analysis
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="aging-tab" data-bs-toggle="tab" data-bs-target="#aging-report" type="button" role="tab">
+                                    <i class="fas fa-clock me-1"></i>Aging Report
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="collection-tab" data-bs-toggle="tab" data-bs-target="#collection-report" type="button" role="tab">
+                                    <i class="fas fa-hand-holding-usd me-1"></i>Collections
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="reportsTabContent">
+                            <!-- Performance Report -->
+                            <div class="tab-pane fade show active" id="performance-report" role="tabpanel">
+                                <div class="row mb-4">
+                                    <div class="col-md-4">
+                                        <div class="card bg-success text-white">
+                                            <div class="card-body text-center">
+                                                <h4>₦{{ disbursements_total|floatformat:0 }}</h4>
+                                                <small>Total Disbursed</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-primary text-white">
+                                            <div class="card-body text-center">
+                                                <h4>₦{{ repayments_total|floatformat:0 }}</h4>
+                                                <small>Total Repayments</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-warning text-white">
+                                            <div class="card-body text-center">
+                                                <h4>₦{{ interest_earned|floatformat:0 }}</h4>
+                                                <small>Interest Earned</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Metric</th>
+                                                <th>This Month</th>
+                                                <th>Previous Month</th>
+                                                <th>YTD</th>
+                                                <th>Target</th>
+                                                <th>Achievement</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>Loan Disbursements</strong></td>
+                                                <td class="text-end">₦{{ this_month_disbursements|floatformat:2 }}</td>
+                                                <td class="text-end">₦{{ prev_month_disbursements|floatformat:2 }}</td>
+                                                <td class="text-end">₦{{ ytd_disbursements|floatformat:2 }}</td>
+                                                <td class="text-end">₦{{ disbursement_target|floatformat:2 }}</td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-{% if disbursement_achievement >= 100 %}success{% elif disbursement_achievement >= 80 %}warning{% else %}danger{% endif %}">
+                                                        {{ disbursement_achievement }}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Recovery Rate</strong></td>
+                                                <td class="text-center">{{ this_month_recovery }}%</td>
+                                                <td class="text-center">{{ prev_month_recovery }}%</td>
+                                                <td class="text-center">{{ ytd_recovery }}%</td>
+                                                <td class="text-center">{{ recovery_target }}%</td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-{% if recovery_achievement >= 100 %}success{% elif recovery_achievement >= 80 %}warning{% else %}danger{% endif %}">
+                                                        {{ recovery_achievement }}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Default Rate</strong></td>
+                                                <td class="text-center">{{ this_month_default }}%</td>
+                                                <td class="text-center">{{ prev_month_default }}%</td>
+                                                <td class="text-center">{{ ytd_default }}%</td>
+                                                <td class="text-center">{{ default_target }}%</td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-{% if default_achievement <= 100 %}success{% elif default_achievement <= 120 %}warning{% else %}danger{% endif %}">
+                                                        {{ default_achievement }}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Risk Analysis -->
+                            <div class="tab-pane fade" id="risk-analysis" role="tabpanel">
+                                <div class="row mb-4">
+                                    <div class="col-md-4">
+                                        <div class="card border-success">
+                                            <div class="card-header bg-success text-white">
+                                                <h6 class="mb-0">Low Risk (0-30%)</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <h4>{{ low_risk_count }}</h4>
+                                                <p class="mb-0">₦{{ low_risk_amount|floatformat:0 }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card border-warning">
+                                            <div class="card-header bg-warning text-dark">
+                                                <h6 class="mb-0">Medium Risk (31-60%)</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <h4>{{ medium_risk_count }}</h4>
+                                                <p class="mb-0">₦{{ medium_risk_amount|floatformat:0 }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card border-danger">
+                                            <div class="card-header bg-danger text-white">
+                                                <h6 class="mb-0">High Risk (61-100%)</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <h4>{{ high_risk_count }}</h4>
+                                                <p class="mb-0">₦{{ high_risk_amount|floatformat:0 }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Member</th>
+                                                <th>Loan Amount</th>
+                                                <th>Risk Score</th>
+                                                <th>Days Overdue</th>
+                                                <th>Outstanding</th>
+                                                <th>Risk Factors</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for loan in high_risk_loans %}
+                                            <tr>
+                                                <td>{{ loan.member.user.get_full_name }}</td>
+                                                <td class="text-end">₦{{ loan.amount|floatformat:2 }}</td>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                                            <div class="progress-bar bg-{% if loan.risk_score <= 30 %}success{% elif loan.risk_score <= 60 %}warning{% else %}danger{% endif %}" 
+                                                                 style="width: {{ loan.risk_score }}%"></div>
+                                                        </div>
+                                                        <small class="{% if loan.risk_score <= 30 %}text-success{% elif loan.risk_score <= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                                            {{ loan.risk_score }}%
+                                                        </small>
+                                                    </div>
+                                                </td>
+                                                <td class="text-center">
+                                                    {% if loan.days_overdue > 0 %}
+                                                        <span class="badge bg-danger">{{ loan.days_overdue }} days</span>
+                                                    {% else %}
+                                                        <span class="badge bg-success">Current</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-end">₦{{ loan.outstanding_balance|floatformat:2 }}</td>
+                                                <td>
+                                                    <small>{{ loan.risk_factors|truncatechars:50 }}</small>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="viewLoanDetails('{{ loan.id }}')">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="7" class="text-center text-muted py-4">
+                                                    No high-risk loans found.
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Aging Report -->
+                            <div class="tab-pane fade" id="aging-report" role="tabpanel">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Age Category</th>
+                                                <th>Count</th>
+                                                <th>Total Amount</th>
+                                                <th>Percentage</th>
+                                                <th>Avg Days Overdue</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="table-success">
+                                                <td><strong>Current (0 days)</strong></td>
+                                                <td class="text-center">{{ current_loans_count }}</td>
+                                                <td class="text-end">₦{{ current_loans_amount|floatformat:2 }}</td>
+                                                <td class="text-center">{{ current_loans_percent }}%</td>
+                                                <td class="text-center">0</td>
+                                            </tr>
+                                            <tr class="table-warning">
+                                                <td><strong>1-30 days overdue</strong></td>
+                                                <td class="text-center">{{ overdue_30_count }}</td>
+                                                <td class="text-end">₦{{ overdue_30_amount|floatformat:2 }}</td>
+                                                <td class="text-center">{{ overdue_30_percent }}%</td>
+                                                <td class="text-center">{{ overdue_30_avg_days }}</td>
+                                            </tr>
+                                            <tr class="table-danger">
+                                                <td><strong>31-60 days overdue</strong></td>
+                                                <td class="text-center">{{ overdue_60_count }}</td>
+                                                <td class="text-end">₦{{ overdue_60_amount|floatformat:2 }}</td>
+                                                <td class="text-center">{{ overdue_60_percent }}%</td>
+                                                <td class="text-center">{{ overdue_60_avg_days }}</td>
+                                            </tr>
+                                            <tr class="table-dark">
+                                                <td><strong>Over 60 days</strong></td>
+                                                <td class="text-center">{{ overdue_over60_count }}</td>
+                                                <td class="text-end">₦{{ overdue_over60_amount|floatformat:2 }}</td>
+                                                <td class="text-center">{{ overdue_over60_percent }}%</td>
+                                                <td class="text-center">{{ overdue_over60_avg_days }}</td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot class="table-primary">
+                                            <tr>
+                                                <th>TOTAL</th>
+                                                <th class="text-center">{{ total_loans }}</th>
+                                                <th class="text-end">₦{{ portfolio_value|floatformat:2 }}</th>
+                                                <th class="text-center">100%</th>
+                                                <th class="text-center">{{ avg_days_overdue }}</th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Collection Report -->
+                            <div class="tab-pane fade" id="collection-report" role="tabpanel">
+                                <div class="row mb-4">
+                                    <div class="col-md-3">
+                                        <div class="card bg-success text-white">
+                                            <div class="card-body text-center">
+                                                <h4>₦{{ collections_today|floatformat:0 }}</h4>
+                                                <small>Collected Today</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-primary text-white">
+                                            <div class="card-body text-center">
+                                                <h4>₦{{ collections_month|floatformat:0 }}</h4>
+                                                <small>This Month</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-warning text-white">
+                                            <div class="card-body text-center">
+                                                <h4>₦{{ expected_collections|floatformat:0 }}</h4>
+                                                <small>Expected</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-info text-white">
+                                            <div class="card-body text-center">
+                                                <h4>{{ collection_efficiency }}%</h4>
+                                                <small>Efficiency</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Member</th>
+                                                <th>Loan Amount</th>
+                                                <th>Outstanding</th>
+                                                <th>Next Payment</th>
+                                                <th>Payment Amount</th>
+                                                <th>Days Until Due</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for loan in upcoming_payments %}
+                                            <tr>
+                                                <td>{{ loan.member.user.get_full_name }}</td>
+                                                <td class="text-end">₦{{ loan.amount|floatformat:2 }}</td>
+                                                <td class="text-end">₦{{ loan.outstanding_balance|floatformat:2 }}</td>
+                                                <td>{{ loan.next_payment_date|date:"M d, Y" }}</td>
+                                                <td class="text-end">₦{{ loan.next_payment_amount|floatformat:2 }}</td>
+                                                <td class="text-center">
+                                                    {% if loan.days_until_due < 0 %}
+                                                        <span class="badge bg-danger">{{ loan.days_until_due|add:"0"|cut:"-" }} days overdue</span>
+                                                    {% elif loan.days_until_due <= 7 %}
+                                                        <span class="badge bg-warning">{{ loan.days_until_due }} days</span>
+                                                    {% else %}
+                                                        <span class="badge bg-success">{{ loan.days_until_due }} days</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="viewLoanDetails('{{ loan.id }}')" title="View Details">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-success" onclick="recordPayment('{{ loan.id }}')" title="Record Payment">
+                                                            <i class="fas fa-plus"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-warning" onclick="sendReminder('{{ loan.id }}')" title="Send Reminder">
+                                                            <i class="fas fa-bell"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="7" class="text-center text-muted py-4">
+                                                    No upcoming payments found.
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-filter me-2"></i>Filter Loan Reports
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="get">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="period" class="form-label">Period</label>
+                        <select class="form-select" name="period">
+                            <option value="">All Time</option>
+                            <option value="today" {% if request.GET.period == 'today' %}selected{% endif %}>Today</option>
+                            <option value="week" {% if request.GET.period == 'week' %}selected{% endif %}>This Week</option>
+                            <option value="month" {% if request.GET.period == 'month' %}selected{% endif %}>This Month</option>
+                            <option value="quarter" {% if request.GET.period == 'quarter' %}selected{% endif %}>This Quarter</option>
+                            <option value="year" {% if request.GET.period == 'year' %}selected{% endif %}>This Year</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Loan Status</label>
+                        <select class="form-select" name="status">
+                            <option value="">All Statuses</option>
+                            <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                            <option value="overdue" {% if request.GET.status == 'overdue' %}selected{% endif %}>Overdue</option>
+                            <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="risk_level" class="form-label">Risk Level</label>
+                        <select class="form-select" name="risk_level">
+                            <option value="">All Risk Levels</option>
+                            <option value="low" {% if request.GET.risk_level == 'low' %}selected{% endif %}>Low Risk</option>
+                            <option value="medium" {% if request.GET.risk_level == 'medium' %}selected{% endif %}>Medium Risk</option>
+                            <option value="high" {% if request.GET.risk_level == 'high' %}selected{% endif %}>High Risk</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-2"></i>Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/chart.min.js' %}"></script>
+<script>
+// Portfolio Trends Chart
+const portfolioCtx = document.getElementById('portfolioChart').getContext('2d');
+const portfolioChart = new Chart(portfolioCtx, {
+    type: 'line',
+    data: {
+        labels: {{ chart_labels|safe }},
+        datasets: [{
+            label: 'Disbursements',
+            data: {{ disbursement_data|safe }},
+            borderColor: 'rgb(25, 135, 84)',
+            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+            tension: 0.1
+        }, {
+            label: 'Repayments',
+            data: {{ repayment_data|safe }},
+            borderColor: 'rgb(13, 110, 253)',
+            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+            tension: 0.1
+        }, {
+            label: 'Outstanding',
+            data: {{ outstanding_data|safe }},
+            borderColor: 'rgb(255, 193, 7)',
+            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value, index, values) {
+                        return '₦' + value.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Status Distribution Chart
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+const statusChart = new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Active', 'Overdue', 'Completed', 'Defaulted'],
+        datasets: [{
+            data: {{ status_distribution|safe }},
+            backgroundColor: [
+                'rgb(25, 135, 84)',
+                'rgb(255, 193, 7)',
+                'rgb(13, 110, 253)',
+                'rgb(220, 53, 69)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+function viewLoanDetails(loanId) {
+    window.location.href = `{% url 'loans:detail' %}${loanId}/`;
+}
+
+function recordPayment(loanId) {
+    window.location.href = `{% url 'loans:record_payment' %}${loanId}/`;
+}
+
+function sendReminder(loanId) {
+    if (confirm('Send payment reminder to member?')) {
+        fetch('{% url "loans:send_reminder" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ loan_id: loanId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', 'Payment reminder sent successfully.');
+            } else {
+                showAlert('danger', 'Failed to send reminder.');
+            }
+        });
+    }
+}
+
+function exportReport() {
+    const activeTab = document.querySelector('.nav-link.active').getAttribute('data-bs-target');
+    let reportType = 'loan_performance';
+    
+    if (activeTab === '#performance-report') reportType = 'performance';
+    else if (activeTab === '#risk-analysis') reportType = 'risk';
+    else if (activeTab === '#aging-report') reportType = 'aging';
+    else if (activeTab === '#collection-report') reportType = 'collection';
+    
+    window.location.href = `{% url 'reports:export' %}?type=loan_${reportType}&format=excel`;
+}
+
+function printReport() {
+    window.print();
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.row');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,459 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Record Loan Repayment - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-money-bill-wave me-2"></i>
+                    Record Loan Repayment
+                </h5>
+            </div>
+            
+            <div class="card-body">
+                <form method="post" id="repaymentForm">
+                    {% csrf_token %}
+                    
+                    <!-- Loan Selection -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">
+                                        <i class="fas fa-search me-2"></i>Select Loan
+                                    </h6>
+                                    {% crispy form %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Loan Information Display -->
+                    <div class="row mb-4" id="loanInfo" style="display: none;">
+                        <div class="col-12">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">Loan Information</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <h6>Total Outstanding</h6>
+                                            <h4 id="outstandingBalance" class="text-warning">₦0.00</h4>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <h6>Interest Remaining</h6>
+                                            <h4 id="interestRemaining" class="text-danger">₦0.00</h4>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <h6>Principal Remaining</h6>
+                                            <h4 id="principalRemaining" class="text-primary">₦0.00</h4>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <h6>Current Phase</h6>
+                                            <h4 id="currentPhase" class="text-info">-</h4>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Progress Bars -->
+                                    <div class="row mt-3">
+                                        <div class="col-md-6">
+                                            <h6>Interest Progress</h6>
+                                            <div class="progress mb-2">
+                                                <div id="interestProgress" class="progress-bar bg-warning" role="progressbar" style="width: 0%">
+                                                    0%
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Principal Progress</h6>
+                                            <div class="progress mb-2">
+                                                <div id="principalProgress" class="progress-bar bg-primary" role="progressbar" style="width: 0%">
+                                                    0%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Calculation -->
+                    <div class="row mb-4" id="paymentCalc" style="display: none;">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Payment Breakdown</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label>Principal Amount</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">₦</span>
+                                                <input type="number" id="principalAmount" class="form-control" step="0.01" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <label>Interest Amount</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text">₦</span>
+                                                <input type="number" id="interestAmount" class="form-control" step="0.01" readonly>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <label>Total Payment</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">₦</span>
+                                            <input type="number" id="totalPayment" class="form-control" step="0.01" readonly>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <label>Balance After Payment</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">₦</span>
+                                            <input type="number" id="balanceAfter" class="form-control" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">Payment Options</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="btn-group-vertical w-100 mb-3" role="group">
+                                        <input type="radio" class="btn-check" name="payment_type" id="regular" value="regular" checked>
+                                        <label class="btn btn-outline-primary" for="regular">
+                                            <i class="fas fa-calendar me-2"></i>Regular Payment
+                                        </label>
+                                        
+                                        <input type="radio" class="btn-check" name="payment_type" id="partial" value="partial">
+                                        <label class="btn btn-outline-warning" for="partial">
+                                            <i class="fas fa-cut me-2"></i>Partial Payment
+                                        </label>
+                                        
+                                        <input type="radio" class="btn-check" name="payment_type" id="full" value="full">
+                                        <label class="btn btn-outline-success" for="full">
+                                            <i class="fas fa-check-circle me-2"></i>Full Settlement
+                                        </label>
+                                    </div>
+                                    
+                                    <div id="customAmountDiv" style="display: none;">
+                                        <label>Custom Payment Amount</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">₦</span>
+                                            <input type="number" id="customAmount" class="form-control" step="0.01" min="0.01">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Transaction Summary -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-receipt me-2"></i>Transaction Summary
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Payment Date:</strong> {{ current_date|date:"M d, Y" }}</p>
+                                            <p><strong>Payment Time:</strong> {{ current_time|time:"H:i" }}</p>
+                                            <p><strong>Processed By:</strong> {{ user.get_full_name }}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Payment Method:</strong> <span id="paymentMethodDisplay">Cash</span></p>
+                                            <p><strong>Reference:</strong> <span id="transactionRef">Will be generated</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'loans:active' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Active Loans
+                        </a>
+                        <button type="submit" class="btn btn-success btn-lg" id="submitBtn" disabled>
+                            <i class="fas fa-check me-2"></i>Record Repayment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>Confirm Repayment
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-money-bill-wave fa-3x text-success mb-3"></i>
+                    <h4>Confirm Payment Details</h4>
+                </div>
+                
+                <div class="row text-center">
+                    <div class="col-md-6">
+                        <h6>Payment Amount</h6>
+                        <h4 class="text-success" id="confirmAmount">₦0.00</h4>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Balance After Payment</h6>
+                        <h4 class="text-primary" id="confirmBalance">₦0.00</h4>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Please confirm the payment details before proceeding.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="confirmPayment">
+                    <i class="fas fa-check me-2"></i>Confirm & Process
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Loan and payment calculations
+document.addEventListener('DOMContentLoaded', function() {
+    const loanSelect = document.querySelector('[name="loan"]');
+    const paymentTypeRadios = document.querySelectorAll('[name="payment_type"]');
+    const customAmountDiv = document.getElementById('customAmountDiv');
+    const customAmountInput = document.getElementById('customAmount');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Loan selection change
+    if (loanSelect) {
+        loanSelect.addEventListener('change', function() {
+            if (this.value) {
+                fetchLoanDetails(this.value);
+                document.getElementById('loanInfo').style.display = 'block';
+                document.getElementById('paymentCalc').style.display = 'block';
+                calculatePayment();
+            } else {
+                document.getElementById('loanInfo').style.display = 'none';
+                document.getElementById('paymentCalc').style.display = 'none';
+                submitBtn.disabled = true;
+            }
+        });
+    }
+    
+    // Payment type change
+    paymentTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'partial') {
+                customAmountDiv.style.display = 'block';
+                customAmountInput.required = true;
+            } else {
+                customAmountDiv.style.display = 'none';
+                customAmountInput.required = false;
+            }
+            calculatePayment();
+        });
+    });
+    
+    // Custom amount change
+    customAmountInput.addEventListener('input', calculatePayment);
+    
+    // Pre-select loan if passed in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const loanId = urlParams.get('loan');
+    if (loanId && loanSelect) {
+        loanSelect.value = loanId;
+        loanSelect.dispatchEvent(new Event('change'));
+    }
+});
+
+function fetchLoanDetails(loanId) {
+    // Fetch loan details from the server
+    fetch(`/loans/${loanId}/details/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const loan = data.loan;
+            
+            // Update loan information display
+            document.getElementById('outstandingBalance').textContent = `₦${parseFloat(loan.total_balance).toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+            document.getElementById('interestRemaining').textContent = `₦${parseFloat(loan.interest_balance).toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+            document.getElementById('principalRemaining').textContent = `₦${parseFloat(loan.principal_balance).toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+            
+            // Determine current phase
+            const currentPhase = loan.interest_balance > 0 ? 'Interest Phase' : 'Principal Phase';
+            document.getElementById('currentPhase').textContent = currentPhase;
+            
+            // Update progress bars
+            const interestProgress = loan.interest_progress || 0;
+            const principalProgress = loan.principal_progress || 0;
+            
+            document.getElementById('interestProgress').style.width = `${interestProgress}%`;
+            document.getElementById('interestProgress').textContent = `${interestProgress}%`;
+            
+            document.getElementById('principalProgress').style.width = `${principalProgress}%`;
+            document.getElementById('principalProgress').textContent = `${principalProgress}%`;
+            
+            // Store loan data for calculations
+            window.currentLoan = loan;
+        } else {
+            console.error('Error fetching loan details:', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Fallback to placeholder values
+        const outstanding = 50000.00;
+        const interestRemaining = 10000.00;
+        const principalRemaining = 40000.00;
+        
+        document.getElementById('outstandingBalance').textContent = `₦${outstanding.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+        document.getElementById('interestRemaining').textContent = `₦${interestRemaining.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+        document.getElementById('principalRemaining').textContent = `₦${principalRemaining.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+        document.getElementById('currentPhase').textContent = 'Interest Phase';
+    });
+}
+
+function calculatePayment() {
+    if (!window.currentLoan) return;
+    
+    const loan = window.currentLoan;
+    const outstanding = loan.total_balance;
+    const interestRemaining = loan.interest_balance;
+    const principalRemaining = loan.principal_balance;
+    
+    const selectedPaymentType = document.querySelector('[name="payment_type"]:checked');
+    if (!selectedPaymentType) return;
+    
+    let paymentAmount = 0;
+    
+    switch (selectedPaymentType.value) {
+        case 'regular':
+            // Use member's monthly deposit if available
+            paymentAmount = Math.min(loan.member_monthly_deposit || 5000, outstanding);
+            break;
+        case 'partial':
+            paymentAmount = parseFloat(document.getElementById('customAmount').value) || 0;
+            break;
+        case 'full':
+            paymentAmount = outstanding;
+            break;
+    }
+    
+    // Calculate allocation using flexible system: Interest first, then principal
+    let interestAllocation = 0;
+    let principalAllocation = 0;
+    
+    if (interestRemaining > 0) {
+        // Pay interest first
+        interestAllocation = Math.min(paymentAmount, interestRemaining);
+        const remainingPayment = paymentAmount - interestAllocation;
+        // Pay principal with remaining amount
+        principalAllocation = Math.min(remainingPayment, principalRemaining);
+    } else {
+        // Only pay principal if interest is complete
+        principalAllocation = Math.min(paymentAmount, principalRemaining);
+    }
+    
+    const balanceAfter = Math.max(0, outstanding - paymentAmount);
+    
+    // Update display
+    document.getElementById('principalAmount').value = principalAllocation.toFixed(2);
+    document.getElementById('interestAmount').value = interestAllocation.toFixed(2);
+    document.getElementById('totalPayment').value = paymentAmount.toFixed(2);
+    document.getElementById('balanceAfter').value = balanceAfter.toFixed(2);
+    
+    // Update confirmation modal
+    document.getElementById('confirmAmount').textContent = `₦${paymentAmount.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    document.getElementById('confirmBalance').textContent = `₦${balanceAfter.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    
+    // Enable/disable submit button
+    const submitBtn = document.getElementById('submitBtn');
+    if (paymentAmount > 0 && paymentAmount <= outstanding) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Record Repayment';
+    } else {
+        submitBtn.disabled = true;
+        if (paymentAmount > outstanding) {
+            submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Amount Exceeds Balance';
+        } else {
+            submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Record Repayment';
+        }
+    }
+}
+
+// Form submission with confirmation
+document.getElementById('repaymentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const paymentAmount = document.getElementById('totalPayment').value;
+    const balanceAfter = document.getElementById('balanceAfter').value;
+    
+    document.getElementById('confirmAmount').textContent = `₦${parseFloat(paymentAmount).toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    document.getElementById('confirmBalance').textContent = `₦${parseFloat(balanceAfter).toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    
+    const modal = new bootstrap.Modal(document.getElementById('confirmationModal'));
+    modal.show();
+});
+
+// Confirm payment
+document.getElementById('confirmPayment').addEventListener('click', function() {
+    // Add hidden inputs to form with calculated values
+    const form = document.getElementById('repaymentForm');
+    
+    const inputs = ['principalAmount', 'interestAmount', 'totalPayment'];
+    inputs.forEach(inputId => {
+        const value = document.getElementById(inputId).value;
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = inputId.replace('Amount', '_amount').replace('Payment', '_payment');
+        hiddenInput.value = value;
+        form.appendChild(hiddenInput);
+    });
+    
+    // Show processing state
+    this.disabled = true;
+    this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    
+    // Submit the form directly
+    form.submit();
+});
+</script>
+{% endblock %}

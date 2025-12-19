@@ -1,0 +1,689 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Annual Reports - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar me-2"></i>
+                    Annual Report - {{ selected_year }}
+                </h5>
+                <div>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#yearModal">
+                        <i class="fas fa-calendar me-1"></i>Change Year
+                    </button>
+                    <button class="btn btn-light btn-sm" onclick="exportReport()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <button class="btn btn-light btn-sm" onclick="printReport()">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <!-- Executive Summary -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card bg-gradient-primary text-white">
+                            <div class="card-body text-center">
+                                <h3>{{ cooperative_name|default:"Cooperative Society" }}</h3>
+                                <h4>Annual Report {{ selected_year }}</h4>
+                                <p class="mb-0">Comprehensive financial and operational review</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Key Performance Metrics -->
+                <div class="row mb-4">
+                    <div class="col-md-2">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ total_members }}</h4>
+                                <small>Total Members</small>
+                                <div class="mt-2">
+                                    <small class="text-success">
+                                        <i class="fas fa-plus"></i>
+                                        +{{ new_members_annual }} new
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ annual_savings_deposits|floatformat:0 }}</h4>
+                                <small>Savings Deposits</small>
+                                <div class="mt-2">
+                                    <small class="text-info">
+                                        <i class="fas fa-piggy-bank"></i>
+                                        Annual total
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ annual_loan_disbursements|floatformat:0 }}</h4>
+                                <small>Loan Disbursements</small>
+                                <div class="mt-2">
+                                    <small class="text-info">
+                                        <i class="fas fa-hand-holding-usd"></i>
+                                        Annual total
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ loans_disbursed|floatformat:0 }}</h4>
+                                <small>Loans Disbursed</small>
+                                <div class="mt-2">
+                                    <small>{{ loans_count }} loans</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ net_income|floatformat:0 }}</h4>
+                                <small>Net Income</small>
+                                <div class="mt-2">
+                                    <small class="{% if income_growth >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {% if income_growth >= 0 %}+{% endif %}{{ income_growth }}% vs {{ previous_year }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-secondary text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ loan_recovery_rate }}%</h4>
+                                <small>Recovery Rate</small>
+                                <div class="mt-2">
+                                    <small class="{% if recovery_improvement >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {% if recovery_improvement >= 0 %}+{% endif %}{{ recovery_improvement }}% improvement
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Annual Performance Chart -->
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-chart-line me-2"></i>Annual Performance Trends
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="annualChart" height="120"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-chart-pie me-2"></i>Portfolio Distribution
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="portfolioChart" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Annual Sections -->
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="annualTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#annual-overview" type="button" role="tab">
+                                    <i class="fas fa-chart-bar me-1"></i>Overview
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="financial-tab" data-bs-toggle="tab" data-bs-target="#financial-summary" type="button" role="tab">
+                                    <i class="fas fa-dollar-sign me-1"></i>Financial Summary
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="membership-tab" data-bs-toggle="tab" data-bs-target="#membership-analysis" type="button" role="tab">
+                                    <i class="fas fa-users me-1"></i>Membership
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="goals-tab" data-bs-toggle="tab" data-bs-target="#goals-targets" type="button" role="tab">
+                                    <i class="fas fa-target me-1"></i>Goals & Targets
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="monthly-tab" data-bs-toggle="tab" data-bs-target="#monthly-breakdown" type="button" role="tab">
+                                    <i class="fas fa-calendar-alt me-1"></i>Monthly Breakdown
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="annualTabContent">
+                            <!-- Annual Overview -->
+                            <div class="tab-pane fade show active" id="annual-overview" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5>Operational Highlights</h5>
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>New Members Registered</span>
+                                                <strong class="text-primary">{{ new_members_count }}</strong>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>Total Transactions Processed</span>
+                                                <strong class="text-info">{{ total_transactions }}</strong>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>Loans Approved</span>
+                                                <strong class="text-success">{{ loans_approved_count }}</strong>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>Average Loan Size</span>
+                                                <strong class="text-warning">₦{{ average_loan_size|floatformat:2 }}</strong>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>Member Retention Rate</span>
+                                                <strong class="text-success">{{ retention_rate }}%</strong>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h5>Key Achievements</h5>
+                                        <div class="row">
+                                            <div class="col-12 mb-3">
+                                                <div class="alert alert-success">
+                                                    <i class="fas fa-trophy me-2"></i>
+                                                    <strong>{{ highest_achievement }}</strong>
+                                                </div>
+                                            </div>
+                                            {% for achievement in key_achievements %}
+                                            <div class="col-12 mb-2">
+                                                <div class="alert alert-info py-2">
+                                                    <i class="fas fa-check me-2"></i>{{ achievement }}
+                                                </div>
+                                            </div>
+                                            {% empty %}
+                                            <div class="col-12">
+                                                <div class="alert alert-info py-2">
+                                                    <i class="fas fa-check me-2"></i>Maintained stable operations throughout the year
+                                                </div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="alert alert-info py-2">
+                                                    <i class="fas fa-check me-2"></i>Improved member satisfaction and retention
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Financial Summary -->
+                            <div class="tab-pane fade" id="financial-summary" role="tabpanel">
+                                <div class="row mb-4">
+                                    <div class="col-md-4">
+                                        <div class="card bg-success text-white">
+                                            <div class="card-body text-center">
+                                                <h3>₦{{ annual_revenue|floatformat:2 }}</h3>
+                                                <p class="mb-0">Total Revenue</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-danger text-white">
+                                            <div class="card-body text-center">
+                                                <h3>₦{{ annual_expenses|floatformat:2 }}</h3>
+                                                <p class="mb-0">Total Expenses</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-primary text-white">
+                                            <div class="card-body text-center">
+                                                <h3>₦{{ annual_profit|floatformat:2 }}</h3>
+                                                <p class="mb-0">Net Profit</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Quarter</th>
+                                                <th>Revenue</th>
+                                                <th>Expenses</th>
+                                                <th>Net Income</th>
+                                                <th>Member Growth</th>
+                                                <th>Savings Growth</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for quarter in quarterly_data %}
+                                            <tr>
+                                                <td><strong>Q{{ quarter.quarter }}</strong></td>
+                                                <td class="text-end">₦{{ quarter.revenue|floatformat:2 }}</td>
+                                                <td class="text-end">₦{{ quarter.expenses|floatformat:2 }}</td>
+                                                <td class="text-end {% if quarter.net_income >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    ₦{{ quarter.net_income|floatformat:2 }}
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-{% if quarter.member_growth >= 0 %}success{% else %}danger{% endif %}">
+                                                        {% if quarter.member_growth >= 0 %}+{% endif %}{{ quarter.member_growth }}%
+                                                    </span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-{% if quarter.savings_growth >= 0 %}success{% else %}danger{% endif %}">
+                                                        {% if quarter.savings_growth >= 0 %}+{% endif %}{{ quarter.savings_growth }}%
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td><strong>Q1</strong></td>
+                                                <td class="text-end">₦{{ q1_revenue|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-end">₦{{ q1_expenses|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-end">₦{{ q1_net|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-center">{{ q1_member_growth|default:"0" }}%</td>
+                                                <td class="text-center">{{ q1_savings_growth|default:"0" }}%</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Q2</strong></td>
+                                                <td class="text-end">₦{{ q2_revenue|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-end">₦{{ q2_expenses|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-end">₦{{ q2_net|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-center">{{ q2_member_growth|default:"0" }}%</td>
+                                                <td class="text-center">{{ q2_savings_growth|default:"0" }}%</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Q3</strong></td>
+                                                <td class="text-end">₦{{ q3_revenue|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-end">₦{{ q3_expenses|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-end">₦{{ q3_net|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-center">{{ q3_member_growth|default:"0" }}%</td>
+                                                <td class="text-center">{{ q3_savings_growth|default:"0" }}%</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Q4</strong></td>
+                                                <td class="text-end">₦{{ q4_revenue|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-end">₦{{ q4_expenses|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-end">₦{{ q4_net|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-center">{{ q4_member_growth|default:"0" }}%</td>
+                                                <td class="text-center">{{ q4_savings_growth|default:"0" }}%</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        <tfoot class="table-primary">
+                                            <tr>
+                                                <th>ANNUAL TOTAL</th>
+                                                <th class="text-end">₦{{ annual_revenue|floatformat:2 }}</th>
+                                                <th class="text-end">₦{{ annual_expenses|floatformat:2 }}</th>
+                                                <th class="text-end">₦{{ annual_profit|floatformat:2 }}</th>
+                                                <th class="text-center">{{ member_growth }}%</th>
+                                                <th class="text-center">{{ savings_growth }}%</th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Membership Analysis -->
+                            <div class="tab-pane fade" id="membership-analysis" role="tabpanel">
+                                <div class="row mb-4">
+                                    <div class="col-md-4">
+                                        <div class="card bg-info text-white">
+                                            <div class="card-body text-center">
+                                                <h4>{{ member_retention_rate }}%</h4>
+                                                <small>Retention Rate</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-success text-white">
+                                            <div class="card-body text-center">
+                                                <h4>{{ active_members_percent }}%</h4>
+                                                <small>Active Members</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-warning text-white">
+                                            <div class="card-body text-center">
+                                                <h4>₦{{ avg_member_savings|floatformat:2 }}</h4>
+                                                <small>Avg Savings per Member</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Member Category</th>
+                                                <th>Count</th>
+                                                <th>Percentage</th>
+                                                <th>Avg Savings</th>
+                                                <th>Avg Loans</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for category in member_categories %}
+                                            <tr>
+                                                <td>{{ category.name }}</td>
+                                                <td class="text-center">{{ category.count }}</td>
+                                                <td class="text-center">{{ category.percentage }}%</td>
+                                                <td class="text-end">₦{{ category.avg_savings|floatformat:2 }}</td>
+                                                <td class="text-end">₦{{ category.avg_loans|floatformat:2 }}</td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td>Regular Members</td>
+                                                <td class="text-center">{{ regular_members|default:"0" }}</td>
+                                                <td class="text-center">{{ regular_percentage|default:"0" }}%</td>
+                                                <td class="text-end">₦{{ regular_avg_savings|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-end">₦{{ regular_avg_loans|floatformat:2|default:"0.00" }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Premium Members</td>
+                                                <td class="text-center">{{ premium_members|default:"0" }}</td>
+                                                <td class="text-center">{{ premium_percentage|default:"0" }}%</td>
+                                                <td class="text-end">₦{{ premium_avg_savings|floatformat:2|default:"0.00" }}</td>
+                                                <td class="text-end">₦{{ premium_avg_loans|floatformat:2|default:"0.00" }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Goals and Targets -->
+                            <div class="tab-pane fade" id="goals-targets" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h5>{{ selected_year }} Performance vs Targets</h5>
+                                        {% for target in annual_targets %}
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span>{{ target.name }}</span>
+                                                <span class="{% if target.achievement_percent >= 100 %}text-success{% elif target.achievement_percent >= 80 %}text-warning{% else %}text-danger{% endif %}">
+                                                    {{ target.achievement_percent }}%
+                                                </span>
+                                            </div>
+                                            <div class="progress">
+                                                <div class="progress-bar {% if target.achievement_percent >= 100 %}bg-success{% elif target.achievement_percent >= 80 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                     style="width: {{ target.achievement_percent }}%"></div>
+                                            </div>
+                                            <small class="text-muted">Target: {{ target.target_value }} | Achieved: {{ target.actual_value }}</small>
+                                        </div>
+                                        {% empty %}
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span>Membership Growth</span>
+                                                <span class="text-success">{{ member_growth }}%</span>
+                                            </div>
+                                            <div class="progress">
+                                                <div class="progress-bar bg-success" style="width: 85%"></div>
+                                            </div>
+                                            <small class="text-muted">Target: 20% | Achieved: {{ member_growth }}%</small>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <span>Savings Target</span>
+                                                <span class="text-warning">{{ savings_target_percent }}%</span>
+                                            </div>
+                                            <div class="progress">
+                                                <div class="progress-bar bg-warning" style="width: {{ savings_target_percent }}%"></div>
+                                            </div>
+                                            <small class="text-muted">Target: ₦{{ savings_target|floatformat:0 }} | Achieved: ₦{{ total_savings|floatformat:0 }}</small>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h5>{{ next_year }} Goals</h5>
+                                        <div class="list-group">
+                                            {% for goal in next_year_goals %}
+                                            <div class="list-group-item">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <h6 class="mb-1">{{ goal.title }}</h6>
+                                                        <p class="mb-1">{{ goal.description }}</p>
+                                                        <small class="text-muted">Target: {{ goal.target }}</small>
+                                                    </div>
+                                                    <span class="badge bg-primary">{{ goal.priority }}</span>
+                                                </div>
+                                            </div>
+                                            {% empty %}
+                                            <div class="list-group-item">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <h6 class="mb-1">Increase Membership</h6>
+                                                        <p class="mb-1">Grow membership base by 25%</p>
+                                                        <small class="text-muted">Target: {{ target_members|default:"N/A" }} members</small>
+                                                    </div>
+                                                    <span class="badge bg-primary">High</span>
+                                                </div>
+                                            </div>
+                                            <div class="list-group-item">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <h6 class="mb-1">Expand Loan Portfolio</h6>
+                                                        <p class="mb-1">Increase loan disbursements by 30%</p>
+                                                        <small class="text-muted">Target: ₦{{ target_loans|default:"N/A" }}</small>
+                                                    </div>
+                                                    <span class="badge bg-warning">Medium</span>
+                                                </div>
+                                            </div>
+                                            <div class="list-group-item">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <h6 class="mb-1">Digital Transformation</h6>
+                                                        <p class="mb-1">Implement mobile banking and online services</p>
+                                                        <small class="text-muted">Target: 80% digital adoption</small>
+                                                    </div>
+                                                    <span class="badge bg-info">High</span>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Monthly Breakdown -->
+                            <div class="tab-pane fade" id="monthly-breakdown" role="tabpanel">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Month</th>
+                                                <th class="text-end">Deposits</th>
+                                                <th class="text-end">Withdrawals</th>
+                                                <th class="text-end">Net Savings</th>
+                                                <th class="text-end">Loans</th>
+                                                <th class="text-end">Repayments</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for month in monthly_breakdown %}
+                                            <tr>
+                                                <td>{{ month.month_name }}</td>
+                                                <td class="text-end text-success">₦{{ month.deposits|floatformat:2 }}</td>
+                                                <td class="text-end text-danger">₦{{ month.withdrawals|floatformat:2 }}</td>
+                                                <td class="text-end {% if month.net_savings >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                    ₦{{ month.net_savings|floatformat:2 }}
+                                                </td>
+                                                <td class="text-end text-info">₦{{ month.loans|floatformat:2 }}</td>
+                                                <td class="text-end text-warning">₦{{ month.repayments|floatformat:2 }}</td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4">
+                                                    No monthly data available for this year.
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        <tfoot class="table-dark">
+                                            <tr>
+                                                <th>TOTAL</th>
+                                                <th class="text-end">₦{{ annual_savings_deposits|floatformat:2 }}</th>
+                                                <th class="text-end">₦{{ annual_savings_withdrawals|floatformat:2 }}</th>
+                                                <th class="text-end">₦{{ annual_savings_deposits|add:annual_savings_withdrawals|floatformat:2 }}</th>
+                                                <th class="text-end">₦{{ annual_loan_disbursements|floatformat:2 }}</th>
+                                                <th class="text-end">₦{{ annual_loan_repayments|floatformat:2 }}</th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Year Selection Modal -->
+<div class="modal fade" id="yearModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar me-2"></i>Select Year
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="get">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="year" class="form-label">Year</label>
+                        <select class="form-select" name="year" id="year">
+                            {% for year in available_years %}
+                            <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>
+                                {{ year }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-calendar me-2"></i>Generate Report
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/chart.min.js' %}"></script>
+<script>
+// Annual Performance Chart
+const ctx = document.getElementById('annualChart').getContext('2d');
+const annualChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+        datasets: [{
+            label: 'Revenue',
+            data: {{ quarterly_revenue|safe }},
+            borderColor: 'rgb(25, 135, 84)',
+            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+            tension: 0.1
+        }, {
+            label: 'Expenses',
+            data: {{ quarterly_expenses|safe }},
+            borderColor: 'rgb(220, 53, 69)',
+            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+            tension: 0.1
+        }, {
+            label: 'Net Income',
+            data: {{ quarterly_profit|safe }},
+            borderColor: 'rgb(13, 110, 253)',
+            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value, index, values) {
+                        return '₦' + value.toLocaleString();
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Portfolio Distribution Chart
+const portfolioCtx = document.getElementById('portfolioChart').getContext('2d');
+const portfolioChart = new Chart(portfolioCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Savings', 'Loans', 'Investments', 'Cash'],
+        datasets: [{
+            data: {{ portfolio_distribution|safe }},
+            backgroundColor: [
+                'rgb(25, 135, 84)',
+                'rgb(255, 193, 7)',
+                'rgb(13, 110, 253)',
+                'rgb(108, 117, 125)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+function exportReport() {
+    const year = '{{ selected_year }}';
+    window.location.href = `{% url 'reports:export' %}?type=annual&format=excel&year=${year}`;
+}
+
+function printReport() {
+    window.print();
+}
+</script>
+{% endblock %}

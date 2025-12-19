@@ -1,0 +1,209 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Savings Reports - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="h4 mb-1">Savings Reports</h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'savings:accounts' %}">Savings</a></li>
+                        <li class="breadcrumb-item active">Reports</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Reports Grid -->
+        <div class="row g-4">
+            <!-- Savings Summary Card -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Savings Summary Report
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Generate comprehensive savings summary including total deposits, withdrawals, and account balances.</p>
+                        <div class="mt-auto">
+                            <a href="#" class="btn btn-success" onclick="generateSavingsSummary()">
+                                <i class="fas fa-download me-2"></i>Generate Report
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Statements -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-file-alt me-2"></i>
+                            Account Statements
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Generate individual or bulk account statements for members showing transaction history.</p>
+                        <div class="mt-auto">
+                            <a href="#" class="btn btn-info" onclick="generateAccountStatements()">
+                                <i class="fas fa-download me-2"></i>Generate Statements
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interest Calculation -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-calculator me-2"></i>
+                            Interest Calculation Report
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Calculate and view interest earned on savings accounts for specific periods.</p>
+                        <div class="mt-auto">
+                            <a href="#" class="btn btn-warning" onclick="generateInterestReport()">
+                                <i class="fas fa-download me-2"></i>Calculate Interest
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction History -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-history me-2"></i>
+                            Transaction History Report
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">Detailed transaction history with filters for date range, member, and transaction type.</p>
+                        <div class="mt-auto">
+                            <a href="#" class="btn btn-primary" onclick="generateTransactionHistory()">
+                                <i class="fas fa-download me-2"></i>Generate Report
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Filters Modal -->
+        <div class="modal fade" id="reportFiltersModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Report Filters</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="reportFiltersForm">
+                            <div class="mb-3">
+                                <label class="form-label">Date Range</label>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <input type="date" class="form-control" id="startDate" name="start_date">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="date" class="form-control" id="endDate" name="end_date">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Report Format</label>
+                                <select class="form-select" id="reportFormat" name="format">
+                                    <option value="pdf">PDF</option>
+                                    <option value="excel">Excel</option>
+                                    <option value="csv">CSV</option>
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="downloadReport()">Download Report</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentReportType = '';
+
+function generateSavingsSummary() {
+    currentReportType = 'savings_summary';
+    showReportFilters();
+}
+
+function generateAccountStatements() {
+    currentReportType = 'account_statements';
+    showReportFilters();
+}
+
+function generateInterestReport() {
+    currentReportType = 'interest_calculation';
+    showReportFilters();
+}
+
+function generateTransactionHistory() {
+    currentReportType = 'transaction_history';
+    showReportFilters();
+}
+
+function showReportFilters() {
+    // Set default dates
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    
+    document.getElementById('startDate').value = firstDay.toISOString().split('T')[0];
+    document.getElementById('endDate').value = today.toISOString().split('T')[0];
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('reportFiltersModal'));
+    modal.show();
+}
+
+function downloadReport() {
+    const form = document.getElementById('reportFiltersForm');
+    const formData = new FormData(form);
+    
+    // Add report type to form data
+    formData.append('report_type', currentReportType);
+    
+    // Create download URL
+    const params = new URLSearchParams(formData);
+    const downloadUrl = `/savings/reports/download/?${params.toString()}`;
+    
+    // Create temporary link and click it
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Close modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('reportFiltersModal'));
+    modal.hide();
+}
+</script>
+{% endblock %}

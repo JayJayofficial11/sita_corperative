@@ -1,0 +1,578 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Apply for Loan{% endblock %}
+
+{% block extra_css %}
+<style>
+.form-container {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    padding: 2rem;
+}
+
+.form-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 15px 15px 0 0;
+    margin: -2rem -2rem 2rem -2rem;
+}
+
+.eligibility-check {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    border-left: 4px solid #28a745;
+    margin-bottom: 2rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="form-container">
+                <div class="form-header">
+                    <h2 class="mb-0">
+                        <i class="fas fa-hand-holding-usd me-3"></i>
+                        Loan Application
+                    </h2>
+                    <p class="mb-0 mt-2">Complete the form below to apply for a loan</p>
+                </div>
+
+                <!-- Eligibility Notice -->
+                <div class="eligibility-check">
+                    <h5><i class="fas fa-shield-alt me-2"></i>New Flexible Loan System Rules</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Loan Eligibility</h6>
+                            <ul class="list-unstyled mb-0">
+                                <li><i class="fas fa-check-circle text-success me-2"></i>Maximum loan: 2x your total deposits</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i>Fixed 10% interest rate (added immediately)</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i>Flexible repayment based on monthly deposit</li>
+                                <li><i class="fas fa-check-circle text-success me-2"></i>Must be repayable within 22 months</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Flexible Repayment</h6>
+                            <ul class="list-unstyled mb-0">
+                                <li><i class="fas fa-info-circle text-info me-2"></i>Interest paid first (as much as possible)</li>
+                                <li><i class="fas fa-info-circle text-info me-2"></i>Principal paid after interest is complete</li>
+                                <li><i class="fas fa-info-circle text-info me-2"></i>Regular savings only after loan is paid</li>
+                                <li><i class="fas fa-info-circle text-info me-2"></i>Multiple loans: 85% repayment required</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Real-time Loan Calculator -->
+                <div class="card mb-4" id="loan-calculator" style="display: none;">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calculator me-2"></i>
+                            Loan Calculation Preview
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6 class="text-muted">Principal Amount</h6>
+                                <h4 class="text-primary mb-3" id="principal-amount">₦0.00</h4>
+                                
+                                <h6 class="text-muted">Interest (10%)</h6>
+                                <h5 class="text-warning mb-3" id="total-interest">₦0.00</h5>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-muted">Total Payable</h6>
+                                <h4 class="text-success mb-3" id="total-payment">₦0.00</h4>
+                                
+                                <h6 class="text-muted">Interest Rate</h6>
+                                <h5 class="text-info mb-3">10% Fixed</h5>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-muted">Repayment Period</h6>
+                                <h4 class="text-dark mb-3">22 Months</h4>
+                                
+                                <h6 class="text-muted">Interest Period</h6>
+                                <h5 class="text-warning mb-3">First 2 Months</h5>
+                            </div>
+                        </div>
+                        
+                        <!-- Repayment Schedule -->
+                        <div class="mt-4">
+                            <h6 class="text-muted mb-3">Flexible Repayment Schedule</h6>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h6 class="text-warning">Interest Phase</h6>
+                                            <h4 id="interest-months">0 months</h4>
+                                            <small class="text-muted">Pay interest first</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h6 class="text-primary">Principal Phase</h6>
+                                            <h4 id="principal-months">0 months</h4>
+                                            <small class="text-muted">Pay principal after interest</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h6 class="text-success">Total Time</h6>
+                                            <h4 id="total-months">0 months</h4>
+                                            <small class="text-muted">Maximum 22 months</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3" id="eligibility-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <span id="eligibility-message">Enter loan amount to check eligibility</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Application Form -->
+                <form method="post">
+                    {% csrf_token %}
+                    {% crispy form %}
+                </form>
+
+                <!-- Member Details Section -->
+                <div class="card mb-4" id="member-details" style="display: none;">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user-circle me-2"></i>
+                            Member Details & Eligibility Status
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Member Basic Info -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Member Information</h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-user fa-2x text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-1" id="member-name">-</h5>
+                                        <small class="text-muted" id="member-id">Member ID: -</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted">Current Status</h6>
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-chart-line fa-2x text-success"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-1" id="member-status">-</h5>
+                                        <small class="text-muted" id="member-phase">Current Phase: -</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Financial Overview -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="card bg-light text-center">
+                                    <div class="card-body">
+                                        <h6 class="text-muted">Monthly Deposit</h6>
+                                        <h4 class="text-primary" id="monthly-deposit">₦0.00</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light text-center">
+                                    <div class="card-body">
+                                        <h6 class="text-muted">Total Savings</h6>
+                                        <h4 class="text-success" id="total-savings">₦0.00</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light text-center">
+                                    <div class="card-body">
+                                        <h6 class="text-muted">Max Loan Amount</h6>
+                                        <h4 class="text-warning" id="max-loan">₦0.00</h4>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-light text-center">
+                                    <div class="card-body">
+                                        <h6 class="text-muted">Outstanding Loan</h6>
+                                        <h4 class="text-danger" id="outstanding-loan">₦0.00</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Loan Progress (if has active loan) -->
+                        <div class="row mb-3" id="loan-progress-section" style="display: none;">
+                            <div class="col-12">
+                                <h6 class="text-muted mb-3">Current Loan Progress</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Interest Progress</h6>
+                                        <div class="progress mb-2">
+                                            <div id="interest-progress-bar" class="progress-bar bg-warning" role="progressbar" style="width: 0%">
+                                                0%
+                                            </div>
+                                        </div>
+                                        <small class="text-muted" id="interest-progress-text">₦0.00 paid of ₦0.00</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Principal Progress</h6>
+                                        <div class="progress mb-2">
+                                            <div id="principal-progress-bar" class="progress-bar bg-primary" role="progressbar" style="width: 0%">
+                                                0%
+                                            </div>
+                                        </div>
+                                        <small class="text-muted" id="principal-progress-text">₦0.00 paid of ₦0.00</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Eligibility Status -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert" id="eligibility-alert">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <span id="eligibility-message">Select a member to view eligibility status</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calculator Link -->
+                <div class="text-center mt-4">
+                    <a href="{% url 'loans:calculator' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-calculator me-2"></i>
+                        Use Standalone Calculator
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Currency formatting function
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-NG', {
+        style: 'currency',
+        currency: 'NGN',
+        minimumFractionDigits: 2
+    }).format(amount);
+}
+
+// Currency input formatting
+document.querySelectorAll('.currency-input').forEach(input => {
+    input.addEventListener('input', function() {
+        let value = this.value.replace(/,/g, '');
+        if (!isNaN(value) && value !== '') {
+            this.setAttribute('data-value', value);
+        }
+    });
+});
+
+// Real-time loan calculation with new rules
+function calculateLoan() {
+    const amount = document.querySelector('[name="requested_amount"]').value;
+    const productId = document.querySelector('[name="loan_product"]').value;
+    const memberId = document.querySelector('[name="member"]').value;
+    
+    // Load member details if member is selected
+    if (memberId) {
+        loadMemberDetails();
+    }
+    
+    if (amount && productId && amount > 0) {
+        // Show calculator section
+        document.getElementById('loan-calculator').style.display = 'block';
+        
+        // Make AJAX request
+        fetch(`{% url 'loans:calculate_ajax' %}?amount=${amount}&product_id=${productId}&member_id=${memberId}`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.interest_amount !== undefined) {
+                // Update calculator display with new flexible format
+                document.getElementById('principal-amount').textContent = formatCurrency(amount);
+                document.getElementById('total-payment').textContent = formatCurrency(data.total_amount);
+                document.getElementById('total-interest').textContent = formatCurrency(data.interest_amount);
+                
+                // Update flexible repayment schedule
+                document.getElementById('interest-months').textContent = `${data.interest_months} months`;
+                document.getElementById('principal-months').textContent = `${data.principal_months} months`;
+                document.getElementById('total-months').textContent = `${data.total_months} months`;
+                
+                // Update eligibility message
+                const maxLoan = data.max_loan_amount || (amount * 2); // 2x total deposits
+                document.getElementById('eligibility-message').textContent = 
+                    `Maximum loan eligibility: ${formatCurrency(maxLoan)} (2x total deposits)`;
+                
+                // Show eligibility info
+                document.getElementById('eligibility-info').style.display = 'block';
+            } else {
+                console.error('Calculation error:', data.error);
+                // Hide calculator on error
+                document.getElementById('loan-calculator').style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('AJAX error:', error);
+            document.getElementById('loan-calculator').style.display = 'none';
+        });
+    } else {
+        // Hide calculator if inputs are incomplete
+        document.getElementById('loan-calculator').style.display = 'none';
+    }
+}
+
+// Load member details when member is selected
+function loadMemberDetails() {
+    const memberSelect = document.querySelector('[name="member"]');
+    const memberId = memberSelect ? memberSelect.value : null;
+    
+    if (!memberId) {
+        // Hide member details if no member selected
+        const memberDetails = document.getElementById('member-details');
+        if (memberDetails) {
+            memberDetails.style.display = 'none';
+        }
+        window.currentMember = null;
+        return;
+    }
+    
+    // Show member details section
+    const memberDetails = document.getElementById('member-details');
+    if (memberDetails) {
+        memberDetails.style.display = 'block';
+    }
+    
+    // Show loading state
+    const memberName = document.getElementById('member-name');
+    const memberIdElement = document.getElementById('member-id');
+    if (memberName) memberName.textContent = 'Loading...';
+    if (memberIdElement) memberIdElement.textContent = 'Member ID: Loading...';
+    
+    // Fetch member details
+    fetch(`/members/${memberId}/loan-info/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const member = data;
+            
+            // Update member basic info
+            const memberNameEl = document.getElementById('member-name');
+            const memberIdEl = document.getElementById('member-id');
+            if (memberNameEl) memberNameEl.textContent = member.member_name;
+            if (memberIdEl) memberIdEl.textContent = `Member ID: ${member.member_id || 'N/A'}`;
+            
+            // Update financial overview
+            const monthlyDepositEl = document.getElementById('monthly-deposit');
+            const totalSavingsEl = document.getElementById('total-savings');
+            const maxLoanEl = document.getElementById('max-loan');
+            const outstandingLoanEl = document.getElementById('outstanding-loan');
+            
+            if (monthlyDepositEl) monthlyDepositEl.textContent = formatCurrency(member.monthly_deposit);
+            if (totalSavingsEl) totalSavingsEl.textContent = formatCurrency(member.total_savings || 0);
+            if (maxLoanEl) maxLoanEl.textContent = formatCurrency(member.max_loan_amount);
+            if (outstandingLoanEl) outstandingLoanEl.textContent = formatCurrency(member.outstanding_loan || 0);
+            
+            // Update member status
+            if (member.loan_progress && member.loan_progress.has_active_loan) {
+                const memberStatusEl = document.getElementById('member-status');
+                const memberPhaseEl = document.getElementById('member-phase');
+                const loanProgressSectionEl = document.getElementById('loan-progress-section');
+                
+                if (memberStatusEl) memberStatusEl.textContent = 'Active Loan';
+                if (memberPhaseEl) {
+                    memberPhaseEl.textContent = 
+                        member.loan_progress.is_interest_phase ? 'Interest Phase' : 
+                        member.loan_progress.is_principal_phase ? 'Principal Phase' : 'Completed';
+                }
+                
+                // Show loan progress section
+                if (loanProgressSectionEl) loanProgressSectionEl.style.display = 'block';
+                
+                // Update progress bars
+                const interestProgress = member.loan_progress.interest_progress_percentage || 0;
+                const principalProgress = member.loan_progress.principal_progress_percentage || 0;
+                
+                const interestProgressBar = document.getElementById('interest-progress-bar');
+                const interestProgressText = document.getElementById('interest-progress-text');
+                const principalProgressBar = document.getElementById('principal-progress-bar');
+                const principalProgressText = document.getElementById('principal-progress-text');
+                
+                if (interestProgressBar) {
+                    interestProgressBar.style.width = `${interestProgress}%`;
+                    interestProgressBar.textContent = `${interestProgress}%`;
+                }
+                if (interestProgressText) {
+                    interestProgressText.textContent = 
+                        `${formatCurrency(member.loan_progress.interest_paid)} paid of ${formatCurrency(member.loan_progress.total_interest)}`;
+                }
+                
+                if (principalProgressBar) {
+                    principalProgressBar.style.width = `${principalProgress}%`;
+                    principalProgressBar.textContent = `${principalProgress}%`;
+                }
+                if (principalProgressText) {
+                    principalProgressText.textContent = 
+                        `${formatCurrency(member.loan_progress.principal_paid)} paid of ${formatCurrency(member.loan_progress.total_borrowed)}`;
+                }
+            } else {
+                const memberStatusEl = document.getElementById('member-status');
+                const memberPhaseEl = document.getElementById('member-phase');
+                const loanProgressSectionEl = document.getElementById('loan-progress-section');
+                
+                if (memberStatusEl) memberStatusEl.textContent = 'No Active Loan';
+                if (memberPhaseEl) memberPhaseEl.textContent = 'Eligible for New Loan';
+                
+                // Hide loan progress section
+                if (loanProgressSectionEl) loanProgressSectionEl.style.display = 'none';
+            }
+            
+            // Store member data globally for other functions
+            window.currentMember = member;
+            
+            // Update eligibility status
+            updateEligibilityStatus(member);
+            
+        } else {
+            console.error('Error loading member details:', data.message);
+            showEligibilityError('Error loading member details');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showEligibilityError('Error loading member details');
+    });
+}
+
+// Update eligibility status based on member info
+function updateEligibilityStatus(member) {
+    const alertDiv = document.getElementById('eligibility-alert');
+    const messageSpan = document.getElementById('eligibility-message');
+    
+    // Check if elements exist before using them
+    if (!alertDiv || !messageSpan) {
+        console.warn('Eligibility elements not found');
+        return;
+    }
+    
+    // Get requested amount if any
+    const amountInput = document.querySelector('[name="requested_amount"]');
+    const requestedAmount = amountInput ? parseFloat(amountInput.value) || 0 : 0;
+    
+    // Check if member can apply for loan
+    const canApply = member.max_loan_amount > 0;
+    const hasOutstanding = member.outstanding_loan > 0;
+    const exceedsMaxLoan = requestedAmount > member.max_loan_amount;
+    
+    if (!canApply) {
+        alertDiv.className = 'alert alert-danger';
+        messageSpan.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Member has no savings deposits. Cannot apply for loan.';
+    } else if (hasOutstanding) {
+        alertDiv.className = 'alert alert-warning';
+        messageSpan.innerHTML = '<i class="fas fa-info-circle me-2"></i>Member has outstanding loan. Must pay 85% before applying for new loan.';
+    } else if (exceedsMaxLoan && requestedAmount > 0) {
+        alertDiv.className = 'alert alert-danger';
+        messageSpan.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>Requested amount (${formatCurrency(requestedAmount)}) exceeds maximum loan amount of ${formatCurrency(member.max_loan_amount)}`;
+    } else {
+        alertDiv.className = 'alert alert-success';
+        const message = requestedAmount > 0 ? 
+            `Requested amount (${formatCurrency(requestedAmount)}) is within eligible range of ${formatCurrency(member.max_loan_amount)}` :
+            `Member is eligible for loans up to ${formatCurrency(member.max_loan_amount)} (2x total deposits)`;
+        messageSpan.innerHTML = `<i class="fas fa-check-circle me-2"></i>${message}`;
+    }
+}
+
+// Show eligibility error
+function showEligibilityError(message) {
+    const alertDiv = document.getElementById('eligibility-alert');
+    const messageSpan = document.getElementById('eligibility-message');
+    
+    // Check if elements exist before using them
+    if (!alertDiv || !messageSpan) {
+        console.warn('Eligibility elements not found for error display');
+        return;
+    }
+    
+    alertDiv.className = 'alert alert-danger';
+    messageSpan.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>${message}`;
+}
+
+// Event listeners for real-time calculation
+document.addEventListener('DOMContentLoaded', function() {
+    const amountInput = document.querySelector('[name="requested_amount"]');
+    const productSelect = document.querySelector('[name="loan_product"]');
+    const memberSelect = document.querySelector('[name="member"]');
+    
+    // Add event listeners
+    if (amountInput) {
+        amountInput.addEventListener('input', function() {
+            calculateLoan();
+            // Update eligibility status if member is selected
+            const memberSelect = document.querySelector('[name="member"]');
+            if (memberSelect && memberSelect.value && window.currentMember) {
+                updateEligibilityStatus(window.currentMember);
+            }
+        });
+    }
+    if (productSelect) productSelect.addEventListener('change', calculateLoan);
+    if (memberSelect) memberSelect.addEventListener('change', loadMemberDetails);
+    
+    // Initial calculation if form has values
+    calculateLoan();
+    
+    // Load member details if member is pre-selected
+    if (memberSelect && memberSelect.value) {
+        loadMemberDetails();
+    }
+});
+
+// Form validation enhancement
+document.querySelector('form').addEventListener('input', function(e) {
+    if (e.target.name === 'requested_amount') {
+        const amount = parseFloat(e.target.value);
+        const productSelect = document.querySelector('[name="loan_product"]');
+        
+        if (productSelect.value && amount) {
+            // Real-time calculation is handled by calculateLoan()
+            calculateLoan();
+        }
+    }
+});
+</script>
+{% endblock %}

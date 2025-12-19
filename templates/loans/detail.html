@@ -1,0 +1,426 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Loan {{ loan.loan_id }} - {{ loan.member.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Loan Summary -->
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-money-bill-wave me-2"></i>Loan Summary
+                </h6>
+            </div>
+            <div class="card-body text-center">
+                <h3 class="text-primary">₦{{ loan.approved_amount|default:loan.requested_amount|floatformat:2 }}</h3>
+                <p class="text-muted">Loan Amount</p>
+                
+                <div class="row text-center mt-3">
+                    <div class="col-6">
+                        <h6 class="text-warning">₦{{ loan.total_balance|default:0|floatformat:2 }}</h6>
+                        <small class="text-muted">Outstanding</small>
+                    </div>
+                    <div class="col-6">
+                        <h6 class="text-success">₦{{ loan.approved_amount|default:loan.requested_amount|floatformat:2|default:"0.00" }}</h6>
+                        <small class="text-muted">Amount Disbursed</small>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    {% if loan.status == 'pending' %}
+                        <span class="badge bg-warning fs-6">Pending Review</span>
+                    {% elif loan.status == 'approved' %}
+                        <span class="badge bg-success fs-6">Approved</span>
+                    {% elif loan.status == 'disbursed' %}
+                        <span class="badge bg-info fs-6">Active</span>
+                    {% elif loan.status == 'rejected' %}
+                        <span class="badge bg-danger fs-6">Rejected</span>
+                    {% elif loan.status == 'completed' %}
+                        <span class="badge bg-success fs-6">Completed</span>
+                    {% else %}
+                        <span class="badge bg-secondary fs-6">{{ loan.status|title }}</span>
+                    {% endif %}
+                </div>
+                
+                {% if loan.status == 'active' and loan.total_balance|default:0 > 0 %}
+                <div class="d-grid gap-2 mt-3">
+                    <a href="{% url 'loans:repayments' %}?loan={{ loan.pk }}" class="btn btn-success">
+                        <i class="fas fa-money-bill-wave me-2"></i>Record Repayment
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Loan Details -->
+        <div class="card shadow mt-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Loan Details</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Loan ID:</strong> {{ loan.loan_id }}</p>
+                <p><strong>Loan Product:</strong> {{ loan.loan_product.name }}</p>
+                <p><strong>Interest Rate:</strong> {{ loan.interest_rate }}%</p>
+                <p><strong>Tenure:</strong> {{ loan.tenure_months }} months</p>
+                <p><strong>Application Date:</strong> {{ loan.application_date|date:"M d, Y" }}</p>
+                {% if loan.disbursement_date %}
+                    <p><strong>Disbursement Date:</strong> {{ loan.disbursement_date|date:"M d, Y" }}</p>
+                {% endif %}
+                {% if loan.expected_completion_date %}
+                    <p><strong>Expected Completion:</strong> {{ loan.expected_completion_date|date:"M d, Y" }}</p>
+                {% endif %}
+                {% if loan.monthly_payment %}
+                    <p><strong>Monthly Payment:</strong> ₦{{ loan.monthly_payment|floatformat:2 }}</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Member Information -->
+        <div class="card shadow mt-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-user me-2"></i>Borrower</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    {% if loan.member.user.profile_picture %}
+                        <img src="{{ loan.member.user.profile_picture.url }}" alt="Profile" class="rounded-circle me-3" width="60" height="60">
+                    {% else %}
+                        <div class="bg-secondary rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                            <i class="fas fa-user fa-lg text-white"></i>
+                        </div>
+                    {% endif %}
+                    <div>
+                        <h6 class="mb-0">{{ loan.member.user.get_full_name }}</h6>
+                        <small class="text-muted">{{ loan.member.member_id }}</small>
+                    </div>
+                </div>
+                
+                <p><strong>Phone:</strong> {{ loan.member.user.phone_number|default:"N/A" }}</p>
+                <p><strong>Email:</strong> {{ loan.member.user.email }}</p>
+                
+                <a href="{% url 'members:detail' loan.member.pk %}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-user me-1"></i>View Member Profile
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loan Details and Activities -->
+    <div class="col-md-8">
+        <!-- Loan Information -->
+        <div class="card shadow mb-3">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-file-alt me-2"></i>Application Details</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Purpose:</strong> {{ loan.purpose|default:"N/A" }}</p>
+                        <p><strong>Requested Amount:</strong> ₦{{ loan.requested_amount|floatformat:2 }}</p>
+                        {% if loan.approved_amount %}
+                        <p><strong>Approved Amount:</strong> ₦{{ loan.approved_amount|floatformat:2 }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Guarantor:</strong> {{ loan.guarantor_name|default:"N/A" }}</p>
+                        <p><strong>Guarantor Phone:</strong> {{ loan.guarantor_phone|default:"N/A" }}</p>
+                        <p><strong>Relationship:</strong> {{ loan.guarantor_relationship|default:"N/A" }}</p>
+                    </div>
+                </div>
+                
+                {% if loan.guarantor_address %}
+                <div class="mt-3">
+                    <strong>Guarantor Address:</strong>
+                    <p class="text-muted">{{ loan.guarantor_address }}</p>
+                </div>
+                {% endif %}
+                
+                {% if loan.approval_notes %}
+                <div class="mt-3">
+                    <strong>Approval Notes:</strong>
+                    <p class="text-success">{{ loan.approval_notes }}</p>
+                </div>
+                {% endif %}
+                
+                {% if loan.rejection_reason %}
+                <div class="mt-3">
+                    <strong>Rejection Reason:</strong>
+                    <p class="text-danger">{{ loan.rejection_reason }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Progress Bar -->
+        {% if loan.status == 'active' %}
+        <div class="card shadow mb-3">
+            <div class="card-body">
+                <h6><i class="fas fa-chart-line me-2"></i>Repayment Progress</h6>
+                {% with total_amount=loan.approved_amount|default:loan.requested_amount %}
+                {% with outstanding=loan.total_balance|default:0 %}
+                {% if total_amount and total_amount > 0 %}
+                <div class="progress mb-2" style="height: 20px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {% widthratio outstanding total_amount 100 %}%">
+                        {% widthratio outstanding total_amount 100 %}% Remaining
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <small class="text-muted">Remaining: ₦{{ outstanding|floatformat:2 }}</small>
+                    <small class="text-muted">Total: ₦{{ total_amount|floatformat:2 }}</small>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No loan amount available for progress calculation.
+                </div>
+                {% endif %}
+                {% endwith %}
+                {% endwith %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Repayment History -->
+        <div class="card shadow">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Repayment History
+                </h6>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="exportRepayments()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                {% if repayments %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Reference</th>
+                                <th>Principal</th>
+                                <th>Interest</th>
+                                <th>Total Amount</th>
+                                <th>Balance After</th>
+                                <th>Processed By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for repayment in repayments %}
+                            <tr>
+                                <td>{{ repayment.payment_date|date:"M d, Y" }}</td>
+                                <td><span class="badge bg-primary">{{ repayment.reference_number|default:"N/A" }}</span></td>
+                                <td class="text-success">₦{{ repayment.principal_amount|floatformat:2 }}</td>
+                                <td class="text-info">₦{{ repayment.interest_amount|floatformat:2 }}</td>
+                                <td><strong>₦{{ repayment.amount|floatformat:2 }}</strong></td>
+                                <td>₦{{ repayment.balance_after|floatformat:2 }}</td>
+                                <td>{{ repayment.processed_by.get_full_name|default:"System" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-info">
+                                <th colspan="2">Total Payments</th>
+                                <th>₦{{ total_principal|floatformat:2 }}</th>
+                                <th>₦{{ total_interest|floatformat:2 }}</th>
+                                <th><strong>₦{{ total_payments|floatformat:2 }}</strong></th>
+                                <th colspan="2"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Repayments Found</h5>
+                    <p class="text-muted">Repayment history will appear here.</p>
+                    {% if loan.status == 'active' %}
+                        <a href="{% url 'loans:repayments' %}?loan={{ loan.pk }}" class="btn btn-success">
+                            <i class="fas fa-money-bill-wave me-2"></i>Record First Repayment
+                        </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons for Pending Loans -->
+{% if loan.status == 'pending' %}
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body text-center">
+                <h6 class="mb-3">Loan Application Actions</h6>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-success" onclick="approveLoan({{ loan.pk }})">
+                        <i class="fas fa-check me-2"></i>Approve Loan
+                    </button>
+                    <button class="btn btn-danger" onclick="rejectLoan({{ loan.pk }})">
+                        <i class="fas fa-times me-2"></i>Reject Loan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Action Buttons for Approved Loans -->
+{% if loan.status == 'approved' %}
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body text-center">
+                <h6 class="mb-3">Loan Disbursement</h6>
+                <button class="btn btn-info btn-lg" onclick="disburseLoan({{ loan.pk }})">
+                    <i class="fas fa-hand-holding-usd me-2"></i>Disburse Loan
+                </button>
+                <p class="text-muted mt-2">Click to disburse the approved loan amount to the member.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Back Button -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="d-flex justify-content-between">
+            <a href="{% if loan.status == 'active' %}{% url 'loans:active' %}{% else %}{% url 'loans:applications' %}{% endif %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to 
+                {% if loan.status == 'active' %}Active Loans{% else %}Applications{% endif %}
+            </a>
+            
+            <div class="btn-group">
+                <button class="btn btn-outline-primary" onclick="printLoanDetails()">
+                    <i class="fas fa-print me-2"></i>Print
+                </button>
+                <button class="btn btn-outline-secondary" onclick="exportLoanDetails()">
+                    <i class="fas fa-download me-2"></i>Export
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approval Modal -->
+<div class="modal fade" id="approvalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i>Approve Loan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'loans:applications' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="approve">
+                <input type="hidden" name="loan_id" value="{{ loan.pk }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="approved_amount" class="form-label">Approved Amount</label>
+                        <input type="number" name="approved_amount" id="approved_amount" class="form-control" step="0.01" value="{{ loan.requested_amount }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="interest_rate" class="form-label">Interest Rate (%)</label>
+                        <input type="number" name="interest_rate" id="interest_rate" class="form-control" step="0.01" value="{{ loan.interest_rate }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="repayment_period" class="form-label">Repayment Period (Months)</label>
+                        <input type="number" name="repayment_period" id="repayment_period" class="form-control" value="{{ loan.tenure_months }}" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="approval_notes" class="form-label">Approval Notes</label>
+                        <textarea name="approval_notes" id="approval_notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-2"></i>Approve Loan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div class="modal fade" id="rejectionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-times-circle me-2"></i>Reject Loan
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'loans:applications' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reject">
+                <input type="hidden" name="loan_id" value="{{ loan.pk }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="rejection_reason" class="form-label">Reason for Rejection</label>
+                        <textarea name="rejection_reason" id="rejection_reason" class="form-control" rows="4" required></textarea>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> This action cannot be undone.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times me-2"></i>Reject Loan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function approveLoan(loanId) {
+    // Set the loan ID in the hidden field
+    document.querySelector('input[name="loan_id"]').value = loanId;
+    const modal = new bootstrap.Modal(document.getElementById('approvalModal'));
+    modal.show();
+}
+
+function rejectLoan(loanId) {
+    // Set the loan ID in the hidden field
+    document.querySelectorAll('input[name="loan_id"]')[1].value = loanId;
+    const modal = new bootstrap.Modal(document.getElementById('rejectionModal'));
+    modal.show();
+}
+
+function disburseLoan(loanId) {
+    if (confirm('Are you sure you want to disburse this loan? This action cannot be undone.')) {
+        window.location.href = `{% url 'loans:disburse' loan.pk %}`;
+    }
+}
+
+function printLoanDetails() {
+    window.print();
+}
+
+function exportLoanDetails() {
+    window.location.href = `{% url 'loans:export_detail' loan.pk %}`;
+}
+
+function exportRepayments() {
+    window.location.href = `{% url 'loans:export_detail' loan.pk %}`;
+}
+</script>
+{% endblock %}

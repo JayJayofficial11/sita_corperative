@@ -1,0 +1,190 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}{{ member.user.get_full_name }} - Savings Accounts{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1">{{ member.user.get_full_name }}</h1>
+                    <p class="text-muted">Member ID: {{ member.member_id }}</p>
+                </div>
+                <a href="{% url 'members:detail' member.id %}" class="btn btn-outline-primary">
+                    <i class="fas fa-user"></i> View Member Profile
+                </a>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="text-primary mb-2">
+                                <i class="fas fa-piggy-bank fa-2x"></i>
+                            </div>
+                            <h5 class="card-title">Total Balance</h5>
+                            <h3 class="text-primary">₦{{ total_balance|floatformat:2 }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="text-success mb-2">
+                                <i class="fas fa-credit-card fa-2x"></i>
+                            </div>
+                            <h5 class="card-title">Active Accounts</h5>
+                            <h3 class="text-success">{{ active_accounts }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body text-center">
+                            <div class="text-info mb-2">
+                                <i class="fas fa-list fa-2x"></i>
+                            </div>
+                            <h5 class="card-title">Total Accounts</h5>
+                            <h3 class="text-info">{{ accounts.count }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Savings Accounts -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-university me-2"></i>
+                        Savings Accounts
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if accounts %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Account Number</th>
+                                        <th>Product</th>
+                                        <th>Balance</th>
+                                        <th>Status</th>
+                                        <th>Date Opened</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for account in accounts %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ account.account_number }}</strong>
+                                        </td>
+                                        <td>{{ account.product.name }}</td>
+                                        <td>
+                                            <span class="fw-bold text-primary">₦{{ account.balance|floatformat:2 }}</span>
+                                        </td>
+                                        <td>
+                                            {% if account.status == 'active' %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% elif account.status == 'inactive' %}
+                                                <span class="badge bg-warning">Inactive</span>
+                                            {% elif account.status == 'frozen' %}
+                                                <span class="badge bg-danger">Frozen</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Closed</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ account.date_opened|date:"M d, Y" }}</td>
+                                        <td>
+                                            <a href="{% url 'savings:detail' account.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-piggy-bank fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Savings Accounts</h5>
+                            <p class="text-muted">This member doesn't have any savings accounts yet.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Transactions -->
+            {% if recent_transactions %}
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Recent Transactions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Account</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in recent_transactions %}
+                                <tr>
+                                    <td>{{ transaction.transaction_date|date:"M d, Y H:i" }}</td>
+                                    <td>{{ transaction.account.account_number }}</td>
+                                    <td>
+                                        {% if transaction.transaction_type == 'compulsory' or transaction.transaction_type == 'voluntary' %}
+                                            <span class="badge bg-success">{{ transaction.get_transaction_type_display }}</span>
+                                        {% elif transaction.transaction_type == 'withdrawal' %}
+                                            <span class="badge bg-warning">{{ transaction.get_transaction_type_display }}</span>
+                                        {% elif transaction.transaction_type == 'loan_repayment' %}
+                                            <span class="badge bg-info">{{ transaction.get_transaction_type_display }}</span>
+                                        {% elif transaction.transaction_type == 'interest' %}
+                                            <span class="badge bg-primary">{{ transaction.get_transaction_type_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ transaction.get_transaction_type_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if transaction.transaction_type == 'compulsory' or transaction.transaction_type == 'voluntary' %}
+                                            <span class="text-success">+₦{{ transaction.amount|floatformat:2 }}</span>
+                                        {% else %}
+                                            <span class="text-danger">-₦{{ transaction.amount|floatformat:2 }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if transaction.status == 'completed' %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% elif transaction.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif transaction.status == 'failed' %}
+                                            <span class="badge bg-danger">Failed</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Cancelled</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

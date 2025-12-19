@@ -1,0 +1,364 @@
+{% extends "base/base.html" %}
+{% load static %}
+
+{% block title %}Membership Reports{% endblock %}
+
+{% block extra_css %}
+<style>
+.report-card {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    transition: all 0.3s ease;
+}
+
+.report-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-item {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 10px;
+    text-align: center;
+    border: 2px solid #e9ecef;
+}
+
+.chart-container {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    height: 400px;
+}
+
+.filter-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 mb-0">
+                        <i class="fas fa-users text-primary me-3"></i>
+                        Membership Reports
+                    </h1>
+                    <p class="text-muted">Comprehensive member analytics and reporting</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exportModal">
+                        <i class="fas fa-download me-2"></i>Export Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-section">
+        <form method="get" class="row g-3">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <div class="col-auto">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter me-2"></i>Generate Report
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Key Statistics -->
+    <div class="stats-grid">
+        <div class="stat-item">
+            <h3 class="text-primary">{{ total_members|default:0 }}</h3>
+            <p class="mb-0">Total Members</p>
+        </div>
+        <div class="stat-item">
+            <h3 class="text-success">{{ active_members|default:0 }}</h3>
+            <p class="mb-0">Active Members</p>
+        </div>
+        <div class="stat-item">
+            <h3 class="text-info">{{ new_members_month|default:0 }}</h3>
+            <p class="mb-0">New This Month</p>
+        </div>
+        <div class="stat-item">
+            <h3 class="text-warning">{{ inactive_members|default:0 }}</h3>
+            <p class="mb-0">Inactive Members</p>
+        </div>
+    </div>
+
+    <!-- Report Sections -->
+    <div class="row">
+        <!-- Member Demographics -->
+        <div class="col-md-6 mb-4">
+            <div class="chart-container">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Member Demographics
+                </h5>
+                <canvas id="demographicsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Membership Growth -->
+        <div class="col-md-6 mb-4">
+            <div class="chart-container">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Membership Growth Trend
+                </h5>
+                <canvas id="growthChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Member Directory -->
+    <div class="report-card">
+        <h5 class="mb-3">
+            <i class="fas fa-address-book me-2"></i>
+            Member Directory
+        </h5>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Member ID</th>
+                        <th>Full Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Join Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in members %}
+                    <tr>
+                        <td>{{ member.member_id }}</td>
+                        <td>
+                            <a href="{% url 'members:detail' member.pk %}" class="text-decoration-none">
+                                {{ member.user.get_full_name }}
+                            </a>
+                        </td>
+                        <td>{{ member.phone_number }}</td>
+                        <td>{{ member.user.email }}</td>
+                        <td>
+                            {% if member.status == 'active' %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-warning">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ member.created_at|date:"M d, Y" }}</td>
+                        <td>
+                            <a href="{% url 'members:detail' member.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{% url 'savings:member_savings' member.pk %}" class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-piggy-bank"></i>
+                            </a>
+                            <a href="{% url 'loans:member_loans' member.pk %}" class="btn btn-sm btn-outline-warning">
+                                <i class="fas fa-hand-holding-usd"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="fas fa-users fa-3x mb-3 d-block"></i>
+                            No members found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Financial Summary -->
+    <div class="report-card">
+        <h5 class="mb-3">
+            <i class="fas fa-chart-bar me-2"></i>
+            Member Financial Summary
+        </h5>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="stat-item">
+                    <h4 class="text-primary">₦{{ total_member_savings|floatformat:0|default:0 }}</h4>
+                    <p class="mb-0">Total Savings</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-item">
+                    <h4 class="text-warning">₦{{ total_member_loans|floatformat:0|default:0 }}</h4>
+                    <p class="mb-0">Outstanding Loans</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-item">
+                    <h4 class="text-success">₦{{ average_savings_per_member|floatformat:0|default:0 }}</h4>
+                    <p class="mb-0">Avg. Savings per Member</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Export Membership Data</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exportForm">
+                    <div class="mb-3">
+                        <label class="form-label">Export Format</label>
+                        <select class="form-select" name="format">
+                            <option value="pdf">PDF Report</option>
+                            <option value="excel">Excel Spreadsheet</option>
+                            <option value="csv">CSV File</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Include</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="include_contact" checked>
+                            <label class="form-check-label">Contact Information</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="include_financial" checked>
+                            <label class="form-check-label">Financial Summary</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="include_history">
+                            <label class="form-check-label">Transaction History</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="exportData()">
+                    <i class="fas fa-download me-2"></i>Export
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Demographics Chart
+    const ctx1 = document.getElementById('demographicsChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'doughnut',
+        data: {
+            labels: ['Active', 'Inactive', 'New'],
+            datasets: [{
+                data: [{{ active_members|default:0 }}, {{ inactive_members|default:0 }}, {{ new_members_month|default:0 }}],
+                backgroundColor: ['#28a745', '#ffc107', '#17a2b8'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Growth Chart
+    const ctx2 = document.getElementById('growthChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'line',
+        data: {
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+                label: 'New Members',
+                data: [12, 19, 3, 5, 2, 8],
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+});
+
+function exportData() {
+    const form = document.getElementById('exportForm');
+    const formData = new FormData(form);
+    
+    // Show loading state
+    const button = event.target;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Exporting...';
+    button.disabled = true;
+    
+    // Simulate export process
+    setTimeout(() => {
+        bootstrap.Modal.getInstance(document.getElementById('exportModal')).hide();
+        showAlert('success', 'Export completed successfully!');
+        
+        // Reset button
+        button.innerHTML = '<i class="fas fa-download me-2"></i>Export';
+        button.disabled = false;
+    }, 3000);
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}

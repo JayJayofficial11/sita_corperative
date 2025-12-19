@@ -1,0 +1,510 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}User Profile - {{ user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <!-- Profile Card -->
+        <div class="card shadow">
+            <div class="card-body text-center">
+                <div class="position-relative mb-3">
+                    {% if user.profile.avatar %}
+                        <img src="{{ user.profile.avatar.url }}" alt="Profile Picture" class="rounded-circle" width="120" height="120">
+                    {% else %}
+                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
+                            <i class="fas fa-user fa-3x text-white"></i>
+                        </div>
+                    {% endif %}
+                    <button class="btn btn-sm btn-primary position-absolute bottom-0 end-0 rounded-circle" data-bs-toggle="modal" data-bs-target="#avatarModal">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                </div>
+                <h4>{{ user.get_full_name }}</h4>
+                <p class="text-muted">{{ user.email }}</p>
+                {% if user.member %}
+                    <span class="badge bg-success mb-2">Member ID: {{ user.member.member_id }}</span>
+                    <p class="text-muted">Joined {{ user.member.date_joined|date:"F Y" }}</p>
+                {% endif %}
+                
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="p-2">
+                            <h6 class="text-primary">{{ user.member.savings_accounts.count|default:0 }}</h6>
+                            <small class="text-muted">Savings</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2">
+                            <h6 class="text-warning">{{ user.member.loans.count|default:0 }}</h6>
+                            <small class="text-muted">Loans</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2">
+                            <h6 class="text-info">{{ transaction_count|default:0 }}</h6>
+                            <small class="text-muted">Transactions</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="card shadow mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-bolt me-2"></i>Quick Actions
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'accounts:settings' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-cog me-2"></i>Account Settings
+                    </a>
+                    {% if user.member %}
+                        <a href="{% url 'members:detail' user.member.id %}" class="btn btn-outline-success">
+                            <i class="fas fa-user me-2"></i>Member Details
+                        </a>
+                        <a href="{% url 'savings:list' %}" class="btn btn-outline-info">
+                            <i class="fas fa-piggy-bank me-2"></i>My Savings
+                        </a>
+                        <a href="{% url 'loans:list' %}" class="btn btn-outline-warning">
+                            <i class="fas fa-hand-holding-usd me-2"></i>My Loans
+                        </a>
+                    {% endif %}
+                    <button class="btn btn-outline-danger" onclick="downloadData()">
+                        <i class="fas fa-download me-2"></i>Download My Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <!-- Profile Information Tabs -->
+        <div class="card shadow">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="profileTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#personal-info" type="button" role="tab">
+                            <i class="fas fa-user me-1"></i>Personal Info
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity-history" type="button" role="tab">
+                            <i class="fas fa-history me-1"></i>Activity
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security-settings" type="button" role="tab">
+                            <i class="fas fa-shield-alt me-1"></i>Security
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="notifications-tab" data-bs-toggle="tab" data-bs-target="#notification-settings" type="button" role="tab">
+                            <i class="fas fa-bell me-1"></i>Notifications
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="card-body">
+                <div class="tab-content" id="profileTabContent">
+                    <!-- Personal Information -->
+                    <div class="tab-pane fade show active" id="personal-info" role="tabpanel">
+                        <form method="post" action="{% url 'accounts:update_profile' %}">
+                            {% csrf_token %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="first_name" class="form-label">First Name</label>
+                                        <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name }}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="last_name" class="form-label">Last Name</label>
+                                        <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name }}" required>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label">Email Address</label>
+                                        <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="phone" class="form-label">Phone Number</label>
+                                        <input type="tel" class="form-control" id="phone" name="phone" value="{{ user.profile.phone|default:'' }}">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if user.member %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="address" class="form-label">Address</label>
+                                        <textarea class="form-control" id="address" name="address" rows="3">{{ user.member.address|default:'' }}</textarea>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="occupation" class="form-label">Occupation</label>
+                                        <input type="text" class="form-control" id="occupation" name="occupation" value="{{ user.member.occupation|default:'' }}">
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="row">
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-2"></i>Update Profile
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Activity History -->
+                    <div class="tab-pane fade" id="activity-history" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Activity</th>
+                                        <th>Description</th>
+                                        <th>Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for activity in recent_activities %}
+                                    <tr>
+                                        <td>{{ activity.created_at|date:"M d, Y H:i" }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if activity.type == 'deposit' %}success{% elif activity.type == 'withdrawal' %}warning{% elif activity.type == 'loan' %}info{% else %}secondary{% endif %}">
+                                                {{ activity.get_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ activity.description }}</td>
+                                        <td class="text-end">
+                                            {% if activity.amount %}
+                                                ₦{{ activity.amount|floatformat:2 }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4">
+                                            No recent activity found.
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <a href="{% url 'transactions:list' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-list me-2"></i>View All Transactions
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Security Settings -->
+                    <div class="tab-pane fade" id="security-settings" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card border-warning">
+                                    <div class="card-header bg-warning text-dark">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-key me-2"></i>Change Password
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <form method="post" action="{% url 'accounts:change_password' %}">
+                                            {% csrf_token %}
+                                            <div class="mb-3">
+                                                <label for="old_password" class="form-label">Current Password</label>
+                                                <input type="password" class="form-control" id="old_password" name="old_password" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="new_password1" class="form-label">New Password</label>
+                                                <input type="password" class="form-control" id="new_password1" name="new_password1" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="new_password2" class="form-label">Confirm New Password</label>
+                                                <input type="password" class="form-control" id="new_password2" name="new_password2" required>
+                                            </div>
+                                            <button type="submit" class="btn btn-warning">
+                                                <i class="fas fa-key me-2"></i>Change Password
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="card border-info">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-shield-alt me-2"></i>Security Status
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <ul class="list-unstyled">
+                                            <li class="mb-2">
+                                                <i class="fas fa-check-circle text-success me-2"></i>
+                                                Account Verified
+                                            </li>
+                                            <li class="mb-2">
+                                                <i class="fas fa-{% if user.profile.two_factor_enabled %}check-circle text-success{% else %}times-circle text-danger{% endif %} me-2"></i>
+                                                Two-Factor Authentication
+                                                {% if not user.profile.two_factor_enabled %}
+                                                    <button class="btn btn-sm btn-primary ms-2" onclick="enableTwoFactor()">
+                                                        Enable
+                                                    </button>
+                                                {% endif %}
+                                            </li>
+                                            <li class="mb-2">
+                                                <i class="fas fa-clock text-info me-2"></i>
+                                                Last Login: {{ user.last_login|date:"M d, Y H:i" }}
+                                            </li>
+                                            <li class="mb-2">
+                                                <i class="fas fa-calendar text-muted me-2"></i>
+                                                Member Since: {{ user.date_joined|date:"M d, Y" }}
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Notification Settings -->
+                    <div class="tab-pane fade" id="notification-settings" role="tabpanel">
+                        <form method="post" action="{% url 'accounts:update_notifications' %}">
+                            {% csrf_token %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card border-primary">
+                                        <div class="card-header bg-primary text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-envelope me-2"></i>Email Notifications
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="email_transactions" name="email_transactions" {% if user.profile.email_transactions %}checked{% endif %}>
+                                                <label class="form-check-label" for="email_transactions">
+                                                    Transaction notifications
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="email_loans" name="email_loans" {% if user.profile.email_loans %}checked{% endif %}>
+                                                <label class="form-check-label" for="email_loans">
+                                                    Loan updates
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="email_reminders" name="email_reminders" {% if user.profile.email_reminders %}checked{% endif %}>
+                                                <label class="form-check-label" for="email_reminders">
+                                                    Payment reminders
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="email_newsletters" name="email_newsletters" {% if user.profile.email_newsletters %}checked{% endif %}>
+                                                <label class="form-check-label" for="email_newsletters">
+                                                    Newsletter and updates
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card border-success">
+                                        <div class="card-header bg-success text-white">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-sms me-2"></i>SMS Notifications
+                                            </h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="sms_transactions" name="sms_transactions" {% if user.profile.sms_transactions %}checked{% endif %}>
+                                                <label class="form-check-label" for="sms_transactions">
+                                                    Transaction alerts
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="sms_loans" name="sms_loans" {% if user.profile.sms_loans %}checked{% endif %}>
+                                                <label class="form-check-label" for="sms_loans">
+                                                    Loan notifications
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-switch mb-3">
+                                                <input class="form-check-input" type="checkbox" id="sms_reminders" name="sms_reminders" {% if user.profile.sms_reminders %}checked{% endif %}>
+                                                <label class="form-check-label" for="sms_reminders">
+                                                    Payment reminders
+                                                </label>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="sms_security" name="sms_security" {% if user.profile.sms_security %}checked{% endif %}>
+                                                <label class="form-check-label" for="sms_security">
+                                                    Security alerts
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-save me-2"></i>Save Notification Settings
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Financial Summary (for members) -->
+        {% if user.member %}
+        <div class="card shadow mt-3">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>Financial Summary
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h5 class="text-success">₦{{ total_savings|floatformat:2|default:"0.00" }}</h5>
+                                <small class="text-muted">Total Savings</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h5 class="text-warning">₦{{ outstanding_loans|floatformat:2|default:"0.00" }}</h5>
+                                <small class="text-muted">Outstanding Loans</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h5 class="text-info">₦{{ monthly_transactions|floatformat:2|default:"0.00" }}</h5>
+                                <small class="text-muted">This Month</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Avatar Upload Modal -->
+<div class="modal fade" id="avatarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-camera me-2"></i>Update Profile Picture
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'accounts:update_avatar' %}">
+                {% csrf_token %}
+                <div class="modal-body text-center">
+                    <div class="mb-3">
+                        <input type="file" class="form-control" id="avatar" name="avatar" accept="image/*" required>
+                    </div>
+                    <div id="preview" class="mb-3" style="display: none;">
+                        <img id="previewImage" class="rounded-circle" width="150" height="150">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>Upload Picture
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Avatar preview
+document.getElementById('avatar').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImage').src = e.target.result;
+            document.getElementById('preview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+function enableTwoFactor() {
+    if (confirm('Enable two-factor authentication for enhanced security?')) {
+        window.location.href = '{% url "accounts:enable_2fa" %}';
+    }
+}
+
+function downloadData() {
+    if (confirm('Download all your personal data? This may take a few minutes.')) {
+        window.location.href = '{% url "accounts:download_data" %}';
+    }
+}
+
+// Show success messages
+{% if messages %}
+    {% for message in messages %}
+        showAlert('{{ message.tags }}', '{{ message }}');
+    {% endfor %}
+{% endif %}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.row');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

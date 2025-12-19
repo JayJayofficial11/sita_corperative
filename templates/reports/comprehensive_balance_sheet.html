@@ -1,0 +1,362 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Comprehensive Balance Sheet - {{ as_of_date }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .report-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .balance-section {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border-left: 4px solid #667eea;
+    }
+    
+    .section-title {
+        color: #2c3e50;
+        font-weight: bold;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #667eea;
+    }
+    
+    .balance-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .balance-item:last-child {
+        border-bottom: none;
+        font-weight: bold;
+        font-size: 1.1rem;
+        color: #2c3e50;
+        border-top: 2px solid #667eea;
+        margin-top: 10px;
+        padding-top: 15px;
+    }
+    
+    .balance-label {
+        color: #7f8c8d;
+        font-weight: 500;
+    }
+    
+    .balance-amount {
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    
+    .balance-amount.total {
+        font-size: 1.3rem;
+        color: #667eea;
+    }
+    
+    .equity-positive {
+        color: #27ae60;
+    }
+    
+    .equity-negative {
+        color: #e74c3c;
+    }
+    
+    .income-positive {
+        color: #27ae60;
+    }
+    
+    .income-negative {
+        color: #e74c3c;
+    }
+    
+    .summary-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .summary-title {
+        color: #495057;
+        font-weight: bold;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    
+    .summary-value {
+        font-size: 2rem;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    
+    .summary-label {
+        color: #6c757d;
+        text-align: center;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Report Header -->
+    <div class="report-header text-center">
+        <h1><i class="fas fa-balance-scale me-3"></i>Comprehensive Balance Sheet</h1>
+        <h3>As of {{ as_of_date|date:"F d, Y" }}</h3>
+        <p class="mb-0">Complete financial position of the cooperative</p>
+    </div>
+
+    <!-- Date Filter -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="date" class="form-label">Select Date:</label>
+                            <input type="date" name="date" id="date" class="form-control" value="{{ as_of_date|date:'Y-m-d' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter me-2"></i>Generate Report
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Summary -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="summary-card">
+                <div class="summary-title">Total Assets</div>
+                <div class="summary-value text-primary">₦{{ total_assets|floatformat:2 }}</div>
+                <div class="summary-label">What the cooperative owns</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="summary-card">
+                <div class="summary-title">Total Liabilities</div>
+                <div class="summary-value text-warning">₦{{ total_liabilities|floatformat:2 }}</div>
+                <div class="summary-label">What the cooperative owes</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="summary-card">
+                <div class="summary-title">Cooperative Equity</div>
+                <div class="summary-value {% if cooperative_equity >= 0 %}equity-positive{% else %}equity-negative{% endif %}">
+                    ₦{{ cooperative_equity|floatformat:2 }}
+                </div>
+                <div class="summary-label">Net worth of the cooperative</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Assets Section -->
+        <div class="col-md-6">
+            <div class="balance-section">
+                <h3 class="section-title"><i class="fas fa-wallet me-2"></i>ASSETS</h3>
+                <p class="text-muted mb-3">What the cooperative owns</p>
+                
+                <div class="balance-item">
+                    <span class="balance-label">Cash & Bank Accounts</span>
+                    <span class="balance-amount">₦{{ cash_accounts|floatformat:2 }}</span>
+                </div>
+                
+                <div class="balance-item">
+                    <span class="balance-label">Member Savings (Asset)</span>
+                    <span class="balance-amount">₦{{ total_savings|floatformat:2 }}</span>
+                </div>
+                
+                <div class="balance-item">
+                    <span class="balance-label">Loans Receivable</span>
+                    <span class="balance-amount">₦{{ loans_receivable|floatformat:2 }}</span>
+                </div>
+                
+                <div class="balance-item">
+                    <span class="balance-label">Registration Fees</span>
+                    <span class="balance-amount">₦{{ registration_fees|floatformat:2 }}</span>
+                </div>
+                
+                <div class="balance-item">
+                    <span class="balance-label">TOTAL ASSETS</span>
+                    <span class="balance-amount total">₦{{ total_assets|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liabilities & Equity Section -->
+        <div class="col-md-6">
+            <div class="balance-section">
+                <h3 class="section-title"><i class="fas fa-hand-holding-usd me-2"></i>LIABILITIES & EQUITY</h3>
+                <p class="text-muted mb-3">What the cooperative owes and owns</p>
+                
+                <h5 class="mt-4 mb-3 text-warning">LIABILITIES</h5>
+                
+                <div class="balance-item">
+                    <span class="balance-label">Member Savings (Liability)</span>
+                    <span class="balance-amount">₦{{ member_savings_liability|floatformat:2 }}</span>
+                </div>
+                
+                <div class="balance-item">
+                    <span class="balance-label">Outstanding Loan Interest</span>
+                    <span class="balance-amount">₦{{ outstanding_interest|floatformat:2 }}</span>
+                </div>
+                
+                <div class="balance-item">
+                    <span class="balance-label">TOTAL LIABILITIES</span>
+                    <span class="balance-amount total">₦{{ total_liabilities|floatformat:2 }}</span>
+                </div>
+                
+                <h5 class="mt-4 mb-3 text-success">EQUITY</h5>
+                
+                <div class="balance-item">
+                    <span class="balance-label">Cooperative Equity</span>
+                    <span class="balance-amount {% if cooperative_equity >= 0 %}equity-positive{% else %}equity-negative{% endif %}">
+                        ₦{{ cooperative_equity|floatformat:2 }}
+                    </span>
+                </div>
+                
+                <div class="balance-item">
+                    <span class="balance-label">TOTAL LIABILITIES & EQUITY</span>
+                    <span class="balance-amount total">₦{{ total_assets|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Income Statement -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="balance-section">
+                <h3 class="section-title"><i class="fas fa-chart-line me-2"></i>INCOME STATEMENT</h3>
+                <p class="text-muted mb-3">Financial performance for the period</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="text-success mb-3">INCOME</h5>
+                        
+                        <div class="balance-item">
+                            <span class="balance-label">Registration Fees</span>
+                            <span class="balance-amount">₦{{ registration_fees|floatformat:2 }}</span>
+                        </div>
+                        
+                        <div class="balance-item">
+                            <span class="balance-label">Loan Interest Earned</span>
+                            <span class="balance-amount">₦{{ total_income|floatformat:2 }}</span>
+                        </div>
+                        
+                        <div class="balance-item">
+                            <span class="balance-label">TOTAL INCOME</span>
+                            <span class="balance-amount total">₦{{ total_income|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5 class="text-warning mb-3">EXPENSES</h5>
+                        
+                        <div class="balance-item">
+                            <span class="balance-label">Operational Expenses</span>
+                            <span class="balance-amount">₦{{ total_expenses|floatformat:2 }}</span>
+                        </div>
+                        
+                        <div class="balance-item">
+                            <span class="balance-label">TOTAL EXPENSES</span>
+                            <span class="balance-amount total">₦{{ total_expenses|floatformat:2 }}</span>
+                        </div>
+                        
+                        <h5 class="text-primary mt-4 mb-3">NET INCOME</h5>
+                        
+                        <div class="balance-item">
+                            <span class="balance-label">Net Income (Loss)</span>
+                            <span class="balance-amount {% if net_income >= 0 %}income-positive{% else %}income-negative{% endif %}">
+                                ₦{{ net_income|floatformat:2 }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Health Indicators -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="balance-section">
+                <h3 class="section-title"><i class="fas fa-heartbeat me-2"></i>FINANCIAL HEALTH INDICATORS</h3>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h4 class="text-primary">Liquidity Ratio</h4>
+                            <h2 class="text-primary">
+                                {% if liquidity_ratio > 0 %}
+                                    {{ liquidity_ratio|floatformat:2 }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </h2>
+                            <p class="text-muted">Assets / Liabilities</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h4 class="text-success">Savings Growth</h4>
+                            <h2 class="text-success">₦{{ total_savings|floatformat:2 }}</h2>
+                            <p class="text-muted">Total Member Savings</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h4 class="text-info">Loan Portfolio</h4>
+                            <h2 class="text-info">₦{{ loans_receivable|floatformat:2 }}</h2>
+                            <p class="text-muted">Outstanding Loans</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Footer -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-calendar me-2"></i>
+                        Balance Sheet as of {{ as_of_date|date:"F d, Y" }} | Generated on {{ "now"|date:"F d, Y \a\t g:i A" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-submit form when date changes
+    document.getElementById('date').addEventListener('change', function() {
+        this.form.submit();
+    });
+</script>
+{% endblock %}

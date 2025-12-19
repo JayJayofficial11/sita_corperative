@@ -1,0 +1,406 @@
+{% load static %}
+{% load django_bootstrap5 %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register New Member - Cooperative Management</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    {% bootstrap_css %}
+    
+    <!-- Font Awesome - Offline Fallback -->
+    <link rel="stylesheet" href="{% static 'css/font-awesome-fallback.css' %}">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    
+    <!-- Google Fonts - Using system fonts for offline compatibility -->
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    
+    <!-- Simple Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/dashboard/">
+                <i class="fas fa-handshake me-2"></i>CoopManage
+            </a>
+            <a class="btn btn-outline-light" href="{% url 'members:list' %}">
+                <i class="fas fa-arrow-left me-2"></i>Back to Members
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-user-plus me-2"></i>
+                            Register New Member
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        <form method="post" enctype="multipart/form-data" id="registrationForm">
+                        {% csrf_token %}
+                        
+                        <!-- User Account Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-user me-2"></i>User Account Details</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ user_form.username.id_for_label }}" class="form-label">{{ user_form.username.label }} *</label>
+                                            {{ user_form.username }}
+                                            {% if user_form.username.help_text %}
+                                                <div class="form-text">{{ user_form.username.help_text }}</div>
+                                            {% endif %}
+                                            {% if user_form.username.errors %}
+                                                <div class="invalid-feedback d-block">{{ user_form.username.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ user_form.email.id_for_label }}" class="form-label">{{ user_form.email.label }} *</label>
+                                            {{ user_form.email }}
+                                            {% if user_form.email.errors %}
+                                                <div class="invalid-feedback d-block">{{ user_form.email.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ user_form.first_name.id_for_label }}" class="form-label">{{ user_form.first_name.label }} *</label>
+                                            {{ user_form.first_name }}
+                                            {% if user_form.first_name.errors %}
+                                                <div class="invalid-feedback d-block">{{ user_form.first_name.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ user_form.last_name.id_for_label }}" class="form-label">{{ user_form.last_name.label }} *</label>
+                                            {{ user_form.last_name }}
+                                            {% if user_form.last_name.errors %}
+                                                <div class="invalid-feedback d-block">{{ user_form.last_name.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ user_form.password1.id_for_label }}" class="form-label">{{ user_form.password1.label }} *</label>
+                                            {{ user_form.password1 }}
+                                            <div class="form-text">Password must be at least 8 characters long.</div>
+                                            {% if user_form.password1.errors %}
+                                                <div class="invalid-feedback d-block">{{ user_form.password1.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ user_form.password2.id_for_label }}" class="form-label">{{ user_form.password2.label }} *</label>
+                                            {{ user_form.password2 }}
+                                            <div class="form-text">Enter the same password as above for verification.</div>
+                                            {% if user_form.password2.errors %}
+                                                <div class="invalid-feedback d-block">{{ user_form.password2.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ user_form.phone_number.id_for_label }}" class="form-label">{{ user_form.phone_number.label }}</label>
+                                            {{ user_form.phone_number }}
+                                            {% if user_form.phone_number.help_text %}
+                                                <div class="form-text">{{ user_form.phone_number.help_text }}</div>
+                                            {% endif %}
+                                            {% if user_form.phone_number.errors %}
+                                                <div class="invalid-feedback d-block">{{ user_form.phone_number.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ user_form.profile_picture.id_for_label }}" class="form-label">{{ user_form.profile_picture.label }}</label>
+                                            {{ user_form.profile_picture }}
+                                            <div class="form-text">Upload a profile picture (optional). Supported formats: JPG, PNG, GIF</div>
+                                            {% if user_form.profile_picture.errors %}
+                                                <div class="invalid-feedback d-block">{{ user_form.profile_picture.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Member Personal Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-address-card me-2"></i>Personal Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ member_form.date_of_birth.id_for_label }}" class="form-label">{{ member_form.date_of_birth.label }} *</label>
+                                            {{ member_form.date_of_birth }}
+                                            {% if member_form.date_of_birth.errors %}
+                                                <div class="invalid-feedback d-block">{{ member_form.date_of_birth.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ member_form.gender.id_for_label }}" class="form-label">{{ member_form.gender.label }} *</label>
+                                            {{ member_form.gender }}
+                                            {% if member_form.gender.errors %}
+                                                <div class="invalid-feedback d-block">{{ member_form.gender.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ member_form.marital_status.id_for_label }}" class="form-label">{{ member_form.marital_status.label }} *</label>
+                                            {{ member_form.marital_status }}
+                                            {% if member_form.marital_status.errors %}
+                                                <div class="invalid-feedback d-block">{{ member_form.marital_status.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ member_form.occupation.id_for_label }}" class="form-label">{{ member_form.occupation.label }} *</label>
+                                            {{ member_form.occupation }}
+                                            {% if member_form.occupation.errors %}
+                                                <div class="invalid-feedback d-block">{{ member_form.occupation.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ member_form.monthly_savings.id_for_label }}" class="form-label">{{ member_form.monthly_savings.label }} *</label>
+                                            {{ member_form.monthly_savings }}
+                                            <div class="form-text">This amount will determine your maximum loan eligibility (20x this amount)</div>
+                                            {% if member_form.monthly_savings.errors %}
+                                                <div class="invalid-feedback d-block">{{ member_form.monthly_savings.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ member_form.employer.id_for_label }}" class="form-label">{{ member_form.employer.label }}</label>
+                                    {{ member_form.employer }}
+                                    {% if member_form.employer.errors %}
+                                        <div class="invalid-feedback d-block">{{ member_form.employer.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ member_form.entrance_date.id_for_label }}" class="form-label">{{ member_form.entrance_date.label }} *</label>
+                                    {{ member_form.entrance_date }}
+                                    {% if member_form.entrance_date.errors %}
+                                        <div class="invalid-feedback d-block">{{ member_form.entrance_date.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Contact Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Contact Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="{{ member_form.address.id_for_label }}" class="form-label">{{ member_form.address.label }} *</label>
+                                    {{ member_form.address }}
+                                    {% if member_form.address.errors %}
+                                        <div class="invalid-feedback d-block">{{ member_form.address.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ member_form.city.id_for_label }}" class="form-label">{{ member_form.city.label }} *</label>
+                                            {{ member_form.city }}
+                                            {% if member_form.city.errors %}
+                                                <div class="invalid-feedback d-block">{{ member_form.city.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ member_form.state.id_for_label }}" class="form-label">{{ member_form.state.label }} *</label>
+                                            {{ member_form.state }}
+                                            {% if member_form.state.errors %}
+                                                <div class="invalid-feedback d-block">{{ member_form.state.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="mb-3">
+                                            <label for="{{ member_form.postal_code.id_for_label }}" class="form-label">{{ member_form.postal_code.label }} *</label>
+                                            {{ member_form.postal_code }}
+                                            {% if member_form.postal_code.errors %}
+                                                <div class="invalid-feedback d-block">{{ member_form.postal_code.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ member_form.emergency_contact_name.id_for_label }}" class="form-label">{{ member_form.emergency_contact_name.label }} *</label>
+                                            {{ member_form.emergency_contact_name }}
+                                            {% if member_form.emergency_contact_name.errors %}
+                                                <div class="invalid-feedback d-block">{{ member_form.emergency_contact_name.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ member_form.emergency_contact_phone.id_for_label }}" class="form-label">{{ member_form.emergency_contact_phone.label }} *</label>
+                                            {{ member_form.emergency_contact_phone }}
+                                            {% if member_form.emergency_contact_phone.errors %}
+                                                <div class="invalid-feedback d-block">{{ member_form.emergency_contact_phone.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Registration Fee -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-naira-sign me-2"></i>Registration Fee</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="{{ member_form.registration_fee_amount.id_for_label }}" class="form-label">{{ member_form.registration_fee_amount.label }} *</label>
+                                    {{ member_form.registration_fee_amount }}
+                                    <div class="form-text">Enter the registration fee amount in your local currency.</div>
+                                    {% if member_form.registration_fee_amount.errors %}
+                                        <div class="invalid-feedback d-block">{{ member_form.registration_fee_amount.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Optional: Guarantor Information -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-user-shield me-2"></i>Guarantor Information <small class="text-muted">(Optional)</small></h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="{{ member_form.guarantor_name.id_for_label }}" class="form-label">{{ member_form.guarantor_name.label }}</label>
+                                    {{ member_form.guarantor_name }}
+                                    {% if member_form.guarantor_name.errors %}
+                                        <div class="invalid-feedback d-block">{{ member_form.guarantor_name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ member_form.guarantor_phone.id_for_label }}" class="form-label">{{ member_form.guarantor_phone.label }}</label>
+                                            {{ member_form.guarantor_phone }}
+                                            {% if member_form.guarantor_phone.errors %}
+                                                <div class="invalid-feedback d-block">{{ member_form.guarantor_phone.errors.0 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ member_form.guarantor_address.id_for_label }}" class="form-label">{{ member_form.guarantor_address.label }}</label>
+                                    {{ member_form.guarantor_address }}
+                                    {% if member_form.guarantor_address.errors %}
+                                        <div class="invalid-feedback d-block">{{ member_form.guarantor_address.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="submit" class="btn btn-primary btn-lg me-md-2">
+                                <i class="fas fa-user-plus me-2"></i>Register Member
+                            </button>
+                            <a href="{% url 'members:list' %}" class="btn btn-secondary btn-lg">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap 5 JS -->
+{% bootstrap_javascript %}
+
+<script>
+// Simple password matching validation - NO LOADERS OR SPINNERS
+document.addEventListener('DOMContentLoaded', function() {
+    const password1 = document.querySelector('[name="password1"]');
+    const password2 = document.querySelector('[name="password2"]');
+    
+    if (password2) {
+        password2.addEventListener('input', function() {
+            if (password1.value && password2.value && password1.value !== password2.value) {
+                password2.classList.add('is-invalid');
+                let feedback = password2.parentNode.querySelector('.password-feedback');
+                if (!feedback) {
+                    feedback = document.createElement('div');
+                    feedback.className = 'text-danger password-feedback';
+                    password2.parentNode.appendChild(feedback);
+                }
+                feedback.textContent = 'Passwords do not match.';
+            } else {
+                password2.classList.remove('is-invalid');
+                const feedback = password2.parentNode.querySelector('.password-feedback');
+                if (feedback) {
+                    feedback.remove();
+                }
+            }
+        });
+    }
+});
+</script>
+
+</body>
+</html>

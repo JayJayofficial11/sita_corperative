@@ -1,0 +1,711 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Detailed Analytics - Cooperative Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analytics-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    .analytics-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+    
+    .metric-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .metric-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .chart-container {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 10px 10px 0 0;
+        margin-bottom: 0;
+        font-weight: 600;
+    }
+    
+    .section-content {
+        background: white;
+        border-radius: 0 0 10px 10px;
+        padding: 20px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+    
+    .filter-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .table-responsive {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+    
+    .table th {
+        background: #667eea;
+        color: white;
+        border: none;
+        font-weight: 600;
+    }
+    
+    .table td {
+        vertical-align: middle;
+        border-color: #e9ecef;
+    }
+    
+    .badge-status {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    
+    .badge-active { background: #d4edda; color: #155724; }
+    .badge-pending { background: #fff3cd; color: #856404; }
+    .badge-overdue { background: #f8d7da; color: #721c24; }
+    .badge-completed { background: #d1ecf1; color: #0c5460; }
+    .badge-high-risk { background: #f8d7da; color: #721c24; }
+    
+    .risk-indicator {
+        padding: 10px 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+    
+    .risk-low { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+    .risk-medium { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
+    .risk-high { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+    
+    .progress-ring {
+        transform: rotate(-90deg);
+    }
+    
+    .progress-ring-circle {
+        transition: stroke-dasharray 0.35s;
+        transform-origin: 50% 50%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="analytics-card text-center">
+                <h1 class="mb-3">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Detailed Analytics & Insights
+                </h1>
+                <p class="mb-0">Deep-dive analysis of cooperative performance, member behavior, and financial health</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="filter-section">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="month" class="form-label">Select Month</label>
+                        <select name="month" id="month" class="form-select">
+                            {% for value, name in month_choices %}
+                                <option value="{{ value }}" {% if value == selected_month %}selected{% endif %}>
+                                    {{ name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="year" class="form-label">Select Year</label>
+                        <select name="year" id="year" class="form-select">
+                            {% for year in year_choices %}
+                                <option value="{{ year }}" {% if year == selected_year %}selected{% endif %}>
+                                    {{ year }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-filter me-1"></i>Apply Filter
+                        </button>
+                        <a href="{% url 'reports:analytics' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-refresh me-1"></i>Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Health Indicators -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="section-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-heartbeat me-2"></i>
+                    Financial Health Indicators
+                </h4>
+            </div>
+            <div class="section-content">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-number">{{ liquidity_ratio|floatformat:1 }}%</div>
+                            <div class="metric-label">Liquidity Ratio</div>
+                            <small>Cash / Total Assets</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-number">{{ loan_to_savings_ratio|floatformat:1 }}%</div>
+                            <div class="metric-label">Loan to Savings Ratio</div>
+                            <small>Outstanding Loans / Total Savings</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-number">₦{{ total_cash|floatformat:2 }}</div>
+                            <div class="metric-label">Available Cash</div>
+                            <small>Liquid Assets</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Member Analytics -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="section-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    Member Growth Trends
+                </h5>
+            </div>
+            <div class="section-content">
+                <canvas id="memberGrowthChart" height="200"></canvas>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="section-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-friends me-2"></i>
+                    Member Demographics
+                </h5>
+            </div>
+            <div class="section-content">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="metric-card">
+                            <div class="metric-number">{{ total_members }}</div>
+                            <div class="metric-label">Total Members</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-card">
+                            <div class="metric-number">{{ active_members }}</div>
+                            <div class="metric-label">Active Members</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-4">
+                        <div class="text-center">
+                            <div class="h4 text-primary">{{ young_members }}</div>
+                            <small class="text-muted">Young (18-30)</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-center">
+                            <div class="h4 text-warning">{{ middle_members }}</div>
+                            <small class="text-muted">Middle (31-50)</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-center">
+                            <div class="h4 text-info">{{ senior_members }}</div>
+                            <small class="text-muted">Senior (50+)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Savings Analytics -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="section-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-piggy-bank me-2"></i>
+                    Savings Performance Trends
+                </h5>
+            </div>
+            <div class="section-content">
+                <canvas id="savingsChart" height="150"></canvas>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="section-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-trophy me-2"></i>
+                    Top Savers
+                </h5>
+            </div>
+            <div class="section-content">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for saver in top_savers %}
+                            <tr>
+                                <td>{{ saver.member.user.get_full_name|default:"N/A" }}</td>
+                                <td>₦{{ saver.balance|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="2" class="text-center text-muted">No savings data</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Analytics -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="section-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-hand-holding-usd me-2"></i>
+                    Loan Performance Trends
+                </h5>
+            </div>
+            <div class="section-content">
+                <canvas id="loanChart" height="150"></canvas>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="section-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Loan Status Distribution
+                </h5>
+            </div>
+            <div class="section-content">
+                <canvas id="loanStatusChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction Analytics -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="section-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-exchange-alt me-2"></i>
+                    Transaction Volume by Type
+                </h5>
+            </div>
+            <div class="section-content">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Count</th>
+                                <th>Total Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transaction_volume %}
+                            <tr>
+                                <td>
+                                    <span class="badge badge-status badge-{{ transaction.transaction_type }}">
+                                        {{ transaction.transaction_type|title }}
+                                    </span>
+                                </td>
+                                <td>{{ transaction.count }}</td>
+                                <td>₦{{ transaction.total_amount|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">No transaction data</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="section-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-week me-2"></i>
+                    Daily Transaction Patterns
+                </h5>
+            </div>
+            <div class="section-content">
+                <canvas id="dailyPatternChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risk Analysis -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="section-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Risk Analysis & Alerts
+                </h4>
+            </div>
+            <div class="section-content">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-danger">Overdue Loans</h6>
+                        <div class="risk-indicator {% if overdue_loans.count == 0 %}risk-low{% elif overdue_loans.count < 5 %}risk-medium{% else %}risk-high{% endif %}">
+                            <strong>{{ overdue_loans.count }}</strong> overdue loans totaling 
+                            <strong>₦{{ overdue_amount|floatformat:2 }}</strong>
+                        </div>
+                        
+                        {% if overdue_loans %}
+                        <div class="table-responsive mt-3">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Member</th>
+                                        <th>Amount</th>
+                                        <th>Days Overdue</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for loan in overdue_loans|slice:":5" %}
+                                    <tr>
+                                        <td>{{ loan.member.user.get_full_name|default:"N/A" }}</td>
+                                        <td>₦{{ loan.approved_amount|floatformat:2 }}</td>
+                                        <td>
+                                            {% now "Y-m-d" as today %}
+                                            {% if loan.expected_completion_date %}
+                                                {% if loan.expected_completion_date|date:"Y-m-d" < today %}
+                                                    Overdue
+                                                {% else %}
+                                                    On time
+                                                {% endif %}
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="text-warning">High-Risk Members</h6>
+                        <div class="risk-indicator {% if high_risk_members.count == 0 %}risk-low{% elif high_risk_members.count < 3 %}risk-medium{% else %}risk-high{% endif %}">
+                            <strong>{{ high_risk_members.count }}</strong> members with multiple overdue loans
+                        </div>
+                        
+                        {% if high_risk_members %}
+                        <div class="table-responsive mt-3">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Member</th>
+                                        <th>Overdue Loans</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for member in high_risk_members|slice:":5" %}
+                                    <tr>
+                                        <td>{{ member.user.get_full_name|default:"N/A" }}</td>
+                                        <td>{{ member.overdue_count }}</td>
+                                        <td>
+                                            <span class="badge badge-status badge-high-risk">High Risk</span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Borrowers -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="section-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-list-ol me-2"></i>
+                    Top Borrowers
+                </h5>
+            </div>
+            <div class="section-content">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Member</th>
+                                <th>Loan Amount</th>
+                                <th>Status</th>
+                                <th>Disbursement Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for loan in top_borrowers %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-primary">{{ forloop.counter }}</span>
+                                </td>
+                                <td>{{ loan.member.user.get_full_name|default:"N/A" }}</td>
+                                <td>₦{{ loan.approved_amount|floatformat:2 }}</td>
+                                <td>
+                                    <span class="badge badge-status badge-{{ loan.status }}">
+                                        {{ loan.status|title }}
+                                    </span>
+                                </td>
+                                <td>{{ loan.disbursement_date|date:"M d, Y"|default:"Not disbursed" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">No loan data available</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/chart.min.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Member Growth Chart
+    const memberCtx = document.getElementById('memberGrowthChart').getContext('2d');
+    const memberData = {{ member_growth|safe }};
+    
+    new Chart(memberCtx, {
+        type: 'line',
+        data: {
+            labels: memberData.map(item => item.month_name),
+            datasets: [{
+                label: 'New Members',
+                data: memberData.map(item => item.new_members),
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+    
+    // Savings Performance Chart
+    const savingsCtx = document.getElementById('savingsChart').getContext('2d');
+    const savingsData = {{ savings_performance|safe }};
+    
+    new Chart(savingsCtx, {
+        type: 'bar',
+        data: {
+            labels: savingsData.map(item => item.month_name),
+            datasets: [{
+                label: 'Deposits',
+                data: savingsData.map(item => item.deposits),
+                backgroundColor: '#28a745',
+                borderColor: '#28a745'
+            }, {
+                label: 'Withdrawals',
+                data: savingsData.map(item => item.withdrawals),
+                backgroundColor: '#dc3545',
+                borderColor: '#dc3545'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₦' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Loan Performance Chart
+    const loanCtx = document.getElementById('loanChart').getContext('2d');
+    const loanData = {{ loan_performance|safe }};
+    
+    new Chart(loanCtx, {
+        type: 'bar',
+        data: {
+            labels: loanData.map(item => item.month_name),
+            datasets: [{
+                label: 'Disbursements',
+                data: loanData.map(item => item.disbursements),
+                backgroundColor: '#ffc107',
+                borderColor: '#ffc107'
+            }, {
+                label: 'Repayments',
+                data: loanData.map(item => item.repayments),
+                backgroundColor: '#17a2b8',
+                borderColor: '#17a2b8'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₦' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Loan Status Distribution Chart
+    const loanStatusCtx = document.getElementById('loanStatusChart').getContext('2d');
+    const loanStatusData = {{ loan_status_dist|safe }};
+    
+    new Chart(loanStatusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: loanStatusData.map(item => item.status),
+            datasets: [{
+                data: loanStatusData.map(item => item.count),
+                backgroundColor: [
+                    '#28a745',
+                    '#ffc107',
+                    '#dc3545',
+                    '#17a2b8',
+                    '#6c757d'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Daily Pattern Chart
+    const dailyCtx = document.getElementById('dailyPatternChart').getContext('2d');
+    const dailyData = {{ daily_patterns|safe }};
+    
+    new Chart(dailyCtx, {
+        type: 'bar',
+        data: {
+            labels: dailyData.map(item => item.day),
+            datasets: [{
+                label: 'Transactions',
+                data: dailyData.map(item => item.count),
+                backgroundColor: '#667eea',
+                borderColor: '#667eea'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

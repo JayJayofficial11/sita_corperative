@@ -1,0 +1,570 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Transactions - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-exchange-alt me-2"></i>
+                    All Transactions
+                </h5>
+                <div>
+                    <button class="btn btn-light btn-sm" onclick="printTransactionHistory()" title="Print Transaction History">
+                        <i class="fas fa-print me-1"></i>Print History
+                    </button>
+                    <a href="{% url 'transactions:add' %}" class="btn btn-light btn-sm">
+                        <i class="fas fa-plus me-1"></i>Add Transaction
+                    </a>
+                    <!-- <a href="{% url 'transactions:quick' %}" class="btn btn-light btn-sm">
+                        <i class="fas fa-bolt me-1"></i>Quick Transaction
+                    </a> -->
+                    <a href="{% url 'transactions:balance_sheet' %}" class="btn btn-light btn-sm">
+                        <i class="fas fa-balance-scale me-1"></i>Balance Sheet
+                    </a>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#searchModal">
+                        <i class="fas fa-search me-1"></i>Search
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <!-- Quick Filters -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <form method="get" class="row g-3 align-items-end">
+                            <div class="col-lg-5 col-md-6">
+                                <label class="form-label fw-semibold text-muted">Quick Search (by member name or description)</label>
+                                <input type="text" name="quick_search" class="form-control" placeholder="e.g. John Doe or description" value="{{ quick_search }}">
+                            </div>
+                            <div class="col-lg-3 col-md-4">
+                                <label class="form-label fw-semibold text-muted">Quick Type Filter</label>
+                                <select name="quick_type" class="form-select">
+                                    <option value="" {% if not quick_type %}selected{% endif %}>All Types</option>
+                                    <option value="income" {% if quick_type == 'income' %}selected{% endif %}>Regular Income</option>
+                                    <option value="expense" {% if quick_type == 'expense' %}selected{% endif %}>Regular Expense</option>
+                                    <option value="savings_deposit" {% if quick_type == 'savings_deposit' %}selected{% endif %}>Savings Deposits</option>
+                                    <option value="savings_withdrawal" {% if quick_type == 'savings_withdrawal' %}selected{% endif %}>Savings Withdrawals</option>
+                                </select>
+                            </div>
+                            <div class="col-lg-4 col-md-2 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i>Apply Filters
+                                </button>
+                                <a href="{% url 'transactions:list' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-undo me-1"></i>Reset
+                                </a>
+                                <button type="button" class="btn btn-outline-primary d-none d-md-inline" data-bs-toggle="modal" data-bs-target="#searchModal">
+                                    <i class="fas fa-sliders-h me-1"></i>Advanced
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Summary Report -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-chart-line me-2"></i>
+                                    Transaction Summary Report
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <!-- Regular Transactions -->
+                                    <div class="col-md-6">
+                                        <h6 class="text-primary mb-3">Regular Transactions</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <td><strong>Total Income:</strong></td>
+                                                    <td class="text-success">₦{{ summary.total_income|floatformat:2 }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Total Expenses:</strong></td>
+                                                    <td class="text-danger">₦{{ summary.total_expense|floatformat:2 }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Total Transfers:</strong></td>
+                                                    <td class="text-info">₦{{ summary.total_transfer|floatformat:2 }}</td>
+                                                </tr>
+                                                <tr class="table-active">
+                                                    <td><strong>Net Regular:</strong></td>
+                                                    <td class="{% if summary.net_regular >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                        ₦{{ summary.net_regular|floatformat:2 }}
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Financial Overview -->
+                                    <div class="col-md-6">
+                                        <h6 class="text-primary mb-3">Financial Overview</h6>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm">
+                                                <tr>
+                                                    <td><strong>Total Savings:</strong></td>
+                                                    <td class="text-success">₦{{ summary.total_savings|floatformat:2|default:"0.00" }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Loan Interest Earned:</strong></td>
+                                                    <td class="text-info">₦{{ summary.total_loan_repayment_interest|floatformat:2|default:"0.00" }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Registration Fees:</strong></td>
+                                                    <td class="text-warning">₦{{ summary.total_registration_fees|floatformat:2|default:"0.00" }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Total Income:</strong></td>
+                                                    <td class="text-primary">₦{{ summary.total_income_amount|floatformat:2|default:"0.00" }}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Total Withdrawals:</strong></td>
+                                                    <td class="text-danger">₦{{ summary.total_withdrawals_amount|floatformat:2|default:"0.00" }}</td>
+                                                </tr>
+                                                <tr class="table-active">
+                                                    <td><strong>Available Balance:</strong></td>
+                                                    <td class="text-success">₦{{ summary.total_available_balance|floatformat:2|default:"0.00" }}</td>
+                                                </tr>
+                                                <tr class="table-primary">
+                                                    <td><strong>Cooperative Balance:</strong></td>
+                                                    <td class="text-primary fw-bold">₦{{ summary.cooperative_balance|floatformat:2|default:"0.00" }}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Overall Summary -->
+                                <div class="row mt-3">
+                                    <div class="col-12">
+                                        <div class="alert alert-info mb-0">
+                                            <div class="row text-center">
+                                                <div class="col-md-3">
+                                                    <strong>Total Transactions:</strong><br>
+                                                    <span class="h5">{{ summary.total_transactions }}</span>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <strong>Cooperative Balance:</strong><br>
+                                                    <span class="h5 text-primary">₦{{ summary.cooperative_balance|floatformat:2 }}</span>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <strong>Net Position:</strong><br>
+                                                    <span class="h5 {% if summary.total_net >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                        ₦{{ summary.total_net|floatformat:2 }}
+                                                    </span>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <strong>Status:</strong><br>
+                                                    <span class="badge {% if summary.total_net >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                                        {% if summary.total_net >= 0 %}Profitable{% else %}Loss{% endif %}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ summary.total_transactions }}</h4>
+                                <small>Total Transactions</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ summary.total_income|floatformat:2 }}</h4>
+                                <small>Total Income</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ total_credits|floatformat:2 }}</h4>
+                                <small>Total Credits</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-secondary text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ transactions_today }}</h4>
+                                <small>Today's Transactions</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Transactions Table -->
+                {% if transactions %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Date</th>
+                                <th>Reference</th>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Account</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions %}
+                            <tr>
+                                <td>{{ transaction.transaction_date|date:"M d, Y H:i" }}</td>
+                                <td>
+                                    <span class="badge bg-primary">{{ transaction.reference_number|default:"N/A" }}</span>
+                                </td>
+                                <td>
+                                    {% if transaction.savings_account %}
+                                        <!-- Savings Transaction -->
+                                        <strong>{{ transaction.get_transaction_type_display }} - {{ transaction.savings_account.member.user.get_full_name }}</strong>
+                                        {% if transaction.description %}
+                                            <br><small class="text-muted">{{ transaction.description|truncatewords:10 }}</small>
+                                        {% endif %}
+                                    {% else %}
+                                        <!-- Regular Transaction -->
+                                        <strong>{{ transaction.description }}</strong>
+                                        {% if transaction.notes %}
+                                            <br><small class="text-muted">{{ transaction.notes|truncatewords:10 }}</small>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if transaction.savings_account %}
+                                        <span class="badge bg-{% if transaction.transaction_type == 'withdrawal' %}danger{% elif transaction.transaction_type == 'deposit' or transaction.transaction_type == 'voluntary' or transaction.transaction_type == 'compulsory' %}success{% else %}info{% endif %}">
+                                            {{ transaction.get_transaction_type_display }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-info">{{ transaction.get_transaction_type_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong class="{% if transaction.savings_account and transaction.transaction_type == 'withdrawal' %}text-danger{% else %}text-success{% endif %}">
+                                        ₦{{ transaction.amount|floatformat:2 }}
+                                    </strong>
+                                </td>
+                                <td>
+                                    {% if transaction.savings_account %}
+                                        <small class="d-block">
+                                            <span class="text-info">Savings Account:</span> {{ transaction.savings_account.member.user.get_full_name }}
+                                        </small>
+                                    {% else %}
+                                        {% for entry in transaction.entries.all %}
+                                            <small class="d-block">
+                                                {% if entry.entry_type == 'debit' %}
+                                                    <span class="text-danger">Dr:</span> {{ entry.account.name }}
+                                                {% else %}
+                                                    <span class="text-success">Cr:</span> {{ entry.account.name }}
+                                                {% endif %}
+                                            </small>
+                                        {% endfor %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if transaction.savings_account %}
+                                        <span class="badge bg-{% if transaction.status == 'completed' %}success{% else %}warning{% endif %}">
+                                            {{ transaction.get_status_display }}
+                                        </span>
+                                    {% else %}
+                                        {% if transaction.status == 'completed' %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% elif transaction.status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% elif transaction.status == 'cancelled' %}
+                                            <span class="badge bg-danger">Cancelled</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Draft</span>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        {% if transaction.savings_account %}
+                                            <!-- For savings transactions, only show undo if recent (within last 24 hours) -->
+                                            {% if transaction.transaction_date|timesince|slice:":2"|add:"0"|add:0 <= 1 %}
+                                                <button class="btn btn-outline-danger" title="Undo Transaction" onclick="undoTransaction({{ transaction.pk }}, 'savings')">
+                                                    <i class="fas fa-undo"></i>
+                                                </button>
+                                            {% else %}
+                                                <span class="text-muted small">No actions</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <!-- For regular transactions, only show undo if recent and not completed -->
+                                            {% if transaction.status != 'completed' and transaction.transaction_date|timesince|slice:":2"|add:"0"|add:0 <= 1 %}
+                                                <button class="btn btn-outline-danger" title="Undo Transaction" onclick="undoTransaction({{ transaction.pk }}, 'regular')">
+                                                    <i class="fas fa-undo"></i>
+                                                </button>
+                                            {% else %}
+                                                <span class="text-muted small">No actions</span>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <nav aria-label="Transactions pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% else %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-exchange-alt fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Transactions Found</h4>
+                    <p class="text-muted">Start by recording your first transaction.</p>
+                    <div class="btn-group" role="group">
+                        <a href="{% url 'transactions:add' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Add Transaction
+                        </a>
+                        <a href="{% url 'transactions:quick' %}" class="btn btn-success">
+                            <i class="fas fa-bolt me-2"></i>Quick Transaction
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Modal -->
+<div class="modal fade" id="searchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-search me-2"></i>Search Transactions
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="get" class="modal-form">
+                <div class="modal-body">
+                    {% crispy search_form %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Search
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function postTransaction(transactionId) {
+    if (confirm('Are you sure you want to post this transaction? This action cannot be undone.')) {
+        fetch(`/transactions/${transactionId}/post/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error posting transaction: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error posting transaction');
+        });
+    }
+}
+
+function deleteTransaction(transactionId) {
+    if (confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
+        fetch(`/transactions/${transactionId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting transaction: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting transaction');
+        });
+    }
+}
+
+function printTransaction(transactionId) {
+    window.open(`/transactions/${transactionId}/print/`, '_blank');
+}
+
+function printTransactionHistory() {
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    const currentDate = new Date().toLocaleDateString();
+    
+    // Get the current page content
+    const table = document.querySelector('.table-responsive table');
+    const stats = document.querySelector('.row.mb-4');
+    
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Transaction History - ${currentDate}</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .stats { display: flex; justify-content: space-around; margin-bottom: 20px; }
+                .stat-card { background: #f8f9fa; padding: 15px; border-radius: 5px; text-align: center; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #f2f2f2; }
+                .badge { padding: 2px 6px; border-radius: 3px; font-size: 11px; }
+                .text-success { color: green; }
+                .text-danger { color: red; }
+                .text-info { color: blue; }
+                @media print { body { margin: 0; } }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>Cooperative Transaction History</h1>
+                <p>Generated on: ${currentDate}</p>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>${document.querySelector('.card.bg-success h4').textContent}</h3>
+                    <p>Total Transactions</p>
+                </div>
+                <div class="stat-card">
+                    <h3>${document.querySelector('.card.bg-info h4').textContent}</h3>
+                    <p>Total Debits</p>
+                </div>
+                <div class="stat-card">
+                    <h3>${document.querySelector('.card.bg-warning h4').textContent}</h3>
+                    <p>Total Credits</p>
+                </div>
+                <div class="stat-card">
+                    <h3>${document.querySelector('.card.bg-secondary h4').textContent}</h3>
+                    <p>Today's Transactions</p>
+                </div>
+            </div>
+            
+            ${table.outerHTML}
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+        printWindow.print();
+    }, 500);
+}
+
+function undoTransaction(transactionId, type) {
+    if (!confirm('Are you sure you want to undo this transaction? This action cannot be reversed.')) {
+        return;
+    }
+    
+    const url = type === 'savings' ? 
+        `/savings/transactions/${transactionId}/undo/` : 
+        `/transactions/${transactionId}/undo/`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Transaction undone successfully');
+            location.reload();
+        } else {
+            alert('Error undoing transaction: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error undoing transaction');
+    });
+}
+
+// Auto-refresh every 30 seconds
+setInterval(() => {
+    if (!document.querySelector('.modal.show')) {
+        location.reload();
+    }
+}, 30000);
+</script>
+{% endblock %}

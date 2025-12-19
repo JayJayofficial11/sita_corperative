@@ -1,0 +1,363 @@
+{% extends 'base/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Cash Flow Management - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Cash Flow Management
+                </h5>
+                <div>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addCashFlowModal">
+                        <i class="fas fa-plus me-1"></i>Record Cash Flow
+                    </button>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        <i class="fas fa-filter me-1"></i>Filter
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <!-- Cash Flow Summary -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ total_inflows|floatformat:2 }}</h4>
+                                <small>Total Inflows</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ total_outflows|floatformat:2 }}</h4>
+                                <small>Total Outflows</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ net_cash_flow|floatformat:2 }}</h4>
+                                <small>Net Cash Flow</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h4>₦{{ cash_position|floatformat:2 }}</h4>
+                                <small>Current Cash Position</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Cash Flow Chart -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-chart-area me-2"></i>Cash Flow Trend
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="cashFlowChart" style="max-height: 400px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Cash Flow Records -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-list me-2"></i>Cash Flow Records
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                {% if cash_flows %}
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Description</th>
+                                                <th>Category</th>
+                                                <th>Flow Type</th>
+                                                <th>Amount</th>
+                                                <th>Running Total</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for flow in cash_flows %}
+                                            <tr>
+                                                <td>{{ flow.date|date:"M d, Y" }}</td>
+                                                <td>{{ flow.description }}</td>
+                                                <td>
+                                                    <span class="badge bg-secondary">{{ flow.get_category_display }}</span>
+                                                </td>
+                                                <td>
+                                                    {% if flow.flow_type == 'inflow' %}
+                                                        <span class="badge bg-success"><i class="fas fa-arrow-up me-1"></i>Inflow</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger"><i class="fas fa-arrow-down me-1"></i>Outflow</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if flow.flow_type == 'inflow' %}
+                                                        <span class="text-success">+₦{{ flow.amount|floatformat:2 }}</span>
+                                                    {% else %}
+                                                        <span class="text-danger">-₦{{ flow.amount|floatformat:2 }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <strong>₦{{ flow.running_total|floatformat:2|default:"0.00" }}</strong>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm" role="group">
+                                                        <button class="btn btn-outline-primary" title="Edit" onclick="editCashFlow({{ flow.pk }})">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-danger" title="Delete" onclick="deleteCashFlow({{ flow.pk }})">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <!-- Pagination -->
+                                {% if is_paginated %}
+                                <nav aria-label="Cash flow pagination">
+                                    <ul class="pagination justify-content-center">
+                                        {% if page_obj.has_previous %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                                                    <i class="fas fa-chevron-left"></i>
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                        
+                                        {% for num in page_obj.paginator.page_range %}
+                                            {% if page_obj.number == num %}
+                                                <li class="page-item active">
+                                                    <span class="page-link">{{ num }}</span>
+                                                </li>
+                                            {% else %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                                </li>
+                                            {% endif %}
+                                        {% endfor %}
+                                        
+                                        {% if page_obj.has_next %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                                {% endif %}
+                                
+                                {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-chart-line fa-4x text-muted mb-3"></i>
+                                    <h4 class="text-muted">No Cash Flow Records</h4>
+                                    <p class="text-muted">Start tracking your cash flows for better financial management.</p>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCashFlowModal">
+                                        <i class="fas fa-plus me-2"></i>Record First Cash Flow
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Cash Flow Modal -->
+<div class="modal fade" id="addCashFlowModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle me-2"></i>Record Cash Flow
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {% crispy form %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Record Cash Flow
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-filter me-2"></i>Filter Cash Flows
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="get">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="flow_type" class="form-label">Flow Type</label>
+                            <select name="flow_type" id="flow_type" class="form-select">
+                                <option value="">All Types</option>
+                                <option value="inflow">Inflows</option>
+                                <option value="outflow">Outflows</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="category" class="form-label">Category</label>
+                            <select name="category" id="category" class="form-select">
+                                <option value="">All Categories</option>
+                                <option value="operations">Operations</option>
+                                <option value="loans">Loans</option>
+                                <option value="savings">Savings</option>
+                                <option value="investments">Investments</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label for="date_from" class="form-label">From Date</label>
+                            <input type="date" name="date_from" id="date_from" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="date_to" class="form-label">To Date</label>
+                            <input type="date" name="date_to" id="date_to" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-2"></i>Apply Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Cash Flow Chart
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('cashFlowChart').getContext('2d');
+    
+    // Sample data - in real implementation, this would come from the backend
+    const chartData = {
+        labels: {{ chart_labels|safe|default:"[]" }},
+        datasets: [{
+            label: 'Cash Inflows',
+            data: {{ inflow_data|safe|default:"[]" }},
+            backgroundColor: 'rgba(25, 135, 84, 0.2)',
+            borderColor: 'rgba(25, 135, 84, 1)',
+            borderWidth: 2,
+            fill: true
+        }, {
+            label: 'Cash Outflows',
+            data: {{ outflow_data|safe|default:"[]" }},
+            backgroundColor: 'rgba(220, 53, 69, 0.2)',
+            borderColor: 'rgba(220, 53, 69, 1)',
+            borderWidth: 2,
+            fill: true
+        }]
+    };
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: chartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₦' + value.toLocaleString('en-NG');
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ₦' + context.parsed.y.toLocaleString('en-NG');
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+
+function editCashFlow(flowId) {
+    // In a real implementation, this would load the cash flow data for editing
+    alert('Edit functionality would be implemented here');
+}
+
+function deleteCashFlow(flowId) {
+    if (confirm('Are you sure you want to delete this cash flow record?')) {
+        fetch(`/transactions/cash-flow/${flowId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting cash flow: ' + (data.error || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting cash flow');
+        });
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,216 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Process Savings Withdrawal - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-minus-circle me-2"></i>
+                    Process Savings Withdrawal
+                </h5>
+            </div>
+            
+            <div class="card-body">
+                <form method="post" id="withdrawalForm">
+                    {% csrf_token %}
+                    
+                    <!-- Member Selection -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">
+                                        <i class="fas fa-user me-2"></i>Member Information
+                                    </h6>
+                                    {% crispy form %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Balance Information -->
+                    <div class="row mb-3" id="balanceInfo" style="display: none;">
+                        <div class="col-12">
+                            <div class="alert alert-warning">
+                                <div class="row text-center">
+                                    <div class="col-md-3">
+                                        <h6>Current Balance</h6>
+                                        <h4 id="currentBalance">₦0.00</h4>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6>Minimum Balance</h6>
+                                        <h4 id="minimumBalance">₦0.00</h4>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6>Available for Withdrawal</h6>
+                                        <h4 id="availableBalance" class="text-info">₦0.00</h4>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6>Balance After Withdrawal</h6>
+                                        <h4 id="newBalance" class="text-danger">₦0.00</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Withdrawal Warnings -->
+                    <div class="row mb-3" id="warningInfo" style="display: none;">
+                        <div class="col-12">
+                            <div class="alert alert-danger" id="insufficientFunds" style="display: none;">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Insufficient Funds!</strong> The withdrawal amount exceeds the available balance.
+                            </div>
+                            <div class="alert alert-warning" id="belowMinimum" style="display: none;">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Warning!</strong> This withdrawal will bring the account below the minimum balance requirement.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Transaction Summary -->
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-receipt me-2"></i>Transaction Summary
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Date:</strong> {{ current_date|date:"M d, Y" }}</p>
+                                            <p><strong>Time:</strong> {{ current_time|time:"H:i" }}</p>
+                                            <p><strong>Processed By:</strong> {{ user.get_full_name }}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Transaction Type:</strong> Savings Withdrawal</p>
+                                            <p><strong>Reference:</strong> <span id="transactionRef">Will be generated</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'savings:accounts' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Accounts
+                        </a>
+                        <button type="submit" class="btn btn-warning btn-lg" id="submitBtn" disabled>
+                            <i class="fas fa-check me-2"></i>Process Withdrawal
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Update balance calculations and validations
+document.addEventListener('DOMContentLoaded', function() {
+    const memberSelect = document.querySelector('[name="member"]');
+    const amountInput = document.querySelector('[name="amount"]');
+    const balanceInfo = document.getElementById('balanceInfo');
+    const warningInfo = document.getElementById('warningInfo');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Member selection change
+    if (memberSelect) {
+        memberSelect.addEventListener('change', function() {
+            if (this.value) {
+                fetchMemberBalance(this.value);
+                balanceInfo.style.display = 'block';
+            } else {
+                balanceInfo.style.display = 'none';
+                warningInfo.style.display = 'none';
+                submitBtn.disabled = true;
+            }
+        });
+    }
+    
+    // Amount input change
+    if (amountInput) {
+        amountInput.addEventListener('input', function() {
+            updateBalanceValidation();
+        });
+    }
+});
+
+function fetchMemberBalance(memberId) {
+    // In a real implementation, this would fetch from an API
+    // For now, we'll use placeholder values
+    const currentBalance = 5000.00; // Example balance
+    const minimumBalance = 1000.00; // Example minimum
+    
+    document.getElementById('currentBalance').textContent = `₦${currentBalance.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    document.getElementById('minimumBalance').textContent = `₦${minimumBalance.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    document.getElementById('availableBalance').textContent = `₦${(currentBalance - minimumBalance).toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    
+    updateBalanceValidation();
+}
+
+function updateBalanceValidation() {
+    const currentBalance = parseFloat(document.getElementById('currentBalance').textContent.replace('₦', '').replace(',', '')) || 0;
+    const minimumBalance = parseFloat(document.getElementById('minimumBalance').textContent.replace('₦', '').replace(',', '')) || 0;
+    const withdrawalAmount = parseFloat(document.querySelector('[name="amount"]').value) || 0;
+    const newBalance = currentBalance - withdrawalAmount;
+    
+    // Update new balance display
+    document.getElementById('newBalance').textContent = `₦${newBalance.toLocaleString('en-NG', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    
+    // Show/hide warnings
+    const warningInfo = document.getElementById('warningInfo');
+    const insufficientFunds = document.getElementById('insufficientFunds');
+    const belowMinimum = document.getElementById('belowMinimum');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Reset warnings
+    warningInfo.style.display = 'none';
+    insufficientFunds.style.display = 'none';
+    belowMinimum.style.display = 'none';
+    
+    if (withdrawalAmount > 0) {
+        if (withdrawalAmount > currentBalance) {
+            // Insufficient funds
+            warningInfo.style.display = 'block';
+            insufficientFunds.style.display = 'block';
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-times me-2"></i>Insufficient Funds';
+        } else if (newBalance < minimumBalance) {
+            // Below minimum balance
+            warningInfo.style.display = 'block';
+            belowMinimum.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Process Withdrawal (Below Minimum)';
+        } else {
+            // Valid withdrawal
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Process Withdrawal';
+        }
+    } else {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-check me-2"></i>Process Withdrawal';
+    }
+}
+
+// Form submission handling
+document.getElementById('withdrawalForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    if (!submitBtn.disabled) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    }
+});
+</script>
+{% endblock %}

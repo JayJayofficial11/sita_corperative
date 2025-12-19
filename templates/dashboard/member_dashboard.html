@@ -1,0 +1,495 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}My Dashboard - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-tachometer-alt me-2"></i>My Dashboard</h2>
+                <div>
+                    <span class="badge bg-primary">{{ member.member_id }}</span>
+                    <span class="badge bg-success">{{ member.membership_status|title }}</span>
+                </div>
+            </div>
+
+            <!-- Member Details Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>
+                        Member Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-user me-2"></i>Personal Details</h6>
+                            <p><strong>Name:</strong> {{ member.user.get_full_name }}</p>
+                            <p><strong>Email:</strong> {{ member.user.email }}</p>
+                            <p><strong>Phone:</strong> {{ member.phone_number }}</p>
+                            <p><strong>Member Since:</strong> {{ member.entrance_date|date:"F d, Y" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-chart-line me-2"></i>Financial Summary</h6>
+                            {% comment %} <p><strong>Total Deposits:</strong> ₦{{ total_deposits|floatformat:2 }}</p>
+                            <p><strong>Total Withdrawals:</strong> ₦{{ total_withdrawals|floatformat:2 }}</p>
+                            <p><strong>Net Savings:</strong> ₦{{ total_deposits|add:total_withdrawals|floatformat:2 }}</p> {% endcomment %}
+                            <p><strong>Monthly Commitment:</strong> ₦{{ monthly_deposit|floatformat:2 }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loan Statistics Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Loan Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Total Loans Applied</h6>
+                                    <h4 class="text-primary">{{ total_loans_applied }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Active Loans</h6>
+                                    <h4 class="text-warning">{{ active_loans }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Completed Loans</h6>
+                                    <h4 class="text-success">{{ completed_loans }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Rejected Loans</h6>
+                                    <h4 class="text-danger">{{ rejected_loans }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Total Borrowed</h6>
+                                    <h4 class="text-primary">₦{{ total_borrowed|floatformat:2 }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Total Repaid</h6>
+                                    <h4 class="text-success">₦{{ total_repaid|floatformat:2 }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loan Progress Section -->
+            {% if loan_progress.has_active_loan %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-money-bill-wave me-2"></i>
+                        Loan Progress - {{ loan_progress.loan_id }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Overall Progress -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Total Amount to Repay</h6>
+                                    <h4 class="text-primary">₦{{ loan_progress.total_to_repay|floatformat:2 }}</h4>
+                                    <small class="text-muted">Principal: ₦{{ loan_progress.total_borrowed|floatformat:2 }} + Interest: ₦{{ loan_progress.total_interest|floatformat:2 }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Amount Paid</h6>
+                                    <h4 class="text-success">₦{{ loan_progress.total_paid|floatformat:2 }}</h4>
+                                    <div class="progress mt-2">
+                                        <div class="progress-bar bg-success" role="progressbar" 
+                                             style="width: {{ loan_progress.progress_percentage }}%">
+                                            {{ loan_progress.progress_percentage }}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Phase Progress -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card {% if loan_progress.is_interest_phase %}border-warning{% else %}border-success{% endif %}">
+                                <div class="card-header {% if loan_progress.is_interest_phase %}bg-warning text-dark{% else %}bg-success text-white{% endif %}">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-percentage me-2"></i>
+                                        Interest Phase
+                                        {% if loan_progress.is_interest_phase %}
+                                            <span class="badge bg-dark">Current</span>
+                                        {% elif loan_progress.interest_progress_percentage == 100 %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% endif %}
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Interest Paid:</span>
+                                        <span>₦{{ loan_progress.interest_paid|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Interest Remaining:</span>
+                                        <span>₦{{ loan_progress.interest_remaining|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-warning" role="progressbar" 
+                                             style="width: {{ loan_progress.interest_progress_percentage }}%">
+                                            {{ loan_progress.interest_progress_percentage }}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card {% if loan_progress.is_principal_phase %}border-primary{% else %}border-success{% endif %}">
+                                <div class="card-header {% if loan_progress.is_principal_phase %}bg-primary text-white{% else %}bg-success text-white{% endif %}">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-coins me-2"></i>
+                                        Principal Phase
+                                        {% if loan_progress.is_principal_phase %}
+                                            <span class="badge bg-dark">Current</span>
+                                        {% elif loan_progress.principal_progress_percentage == 100 %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% endif %}
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Principal Paid:</span>
+                                        <span>₦{{ loan_progress.principal_paid|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Principal Remaining:</span>
+                                        <span>₦{{ loan_progress.principal_remaining|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-primary" role="progressbar" 
+                                             style="width: {{ loan_progress.principal_progress_percentage }}%">
+                                            {{ loan_progress.principal_progress_percentage }}%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Status -->
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Current Status:</strong>
+                        {% if loan_progress.is_interest_phase %}
+                            You are currently in the <strong>Interest Phase</strong>. 
+                            Your monthly deposits of ₦{{ monthly_deposit|floatformat:2 }} will be used to pay interest first.
+                        {% elif loan_progress.is_principal_phase %}
+                            You are currently in the <strong>Principal Phase</strong>. 
+                            Your monthly deposits of ₦{{ monthly_deposit|floatformat:2 }} will be used to pay the principal amount.
+                        {% elif loan_progress.is_completed %}
+                            <strong>Congratulations!</strong> Your loan has been fully repaid. 
+                            Your monthly deposits will now go to your regular savings.
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- No Active Loan -->
+            <div class="card mb-4">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Active Loan</h5>
+                    <p class="text-muted">You currently don't have an active loan.</p>
+                    <a href="{% url 'loans:apply' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Apply for a Loan
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Savings Account Section -->
+            {% if savings_account %}
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-piggy-bank me-2"></i>
+                        Savings Account - {{ savings_account.account_number }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Total Balance</h6>
+                                    <h4 class="text-success">₦{{ savings_account.balance|floatformat:2 }}</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Available Balance</h6>
+                                    <h4 class="text-primary">₦{{ savings_account.available_balance|floatformat:2 }}</h4>
+                                    <small class="text-muted">Available for withdrawal</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Collateral Amount</h6>
+                                    <h4 class="text-warning">₦{{ savings_account.collateral_amount|floatformat:2 }}</h4>
+                                    <small class="text-muted">Held as loan collateral</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Loan Eligibility Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calculator me-2"></i>
+                        Loan Eligibility
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Maximum Loan Amount</h6>
+                                    <h4 class="text-primary">₦{{ max_loan_amount|floatformat:2 }}</h4>
+                                    <small class="text-muted">2x your total deposits</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted">Monthly Deposit</h6>
+                                    <h4 class="text-success">₦{{ monthly_deposit|floatformat:2 }}</h4>
+                                    <small class="text-muted">Current monthly commitment</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if not loan_progress.has_active_loan %}
+                    <div class="text-center mt-3">
+                        <a href="{% url 'loans:apply' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-hand-holding-usd me-2"></i>Apply for a Loan
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- All Recent Transactions -->
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        All Recent Transactions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Description</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in recent_transactions %}
+                                    <tr>
+                                        <td>{{ transaction.transaction_date|date:"M d, Y" }}</td>
+                                        <td>
+                                            <span class="badge {% if transaction.transaction_type == 'income' %}bg-success{% else %}bg-danger{% endif %}">
+                                                {{ transaction.get_transaction_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ transaction.description|truncatechars:50 }}</td>
+                                        <td>
+                                            <span class="{% if transaction.transaction_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                                                ₦{{ transaction.amount|floatformat:2 }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if transaction.status == 'completed' %}bg-success{% elif transaction.status == 'pending' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                                {{ transaction.get_status_display }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">No recent transactions</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Transaction History by Type -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-piggy-bank me-2"></i>
+                                Savings Transactions
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            {% if recent_savings %}
+                                <div class="list-group list-group-flush">
+                                    {% for transaction in recent_savings %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>{{ transaction.get_transaction_type_display }}</strong>
+                                            <br><small class="text-muted">{{ transaction.transaction_date|date:"M d, Y" }}</small>
+                                        </div>
+                                        <span class="badge {% if transaction.transaction_type in 'compulsory,voluntary' %}bg-success{% else %}bg-danger{% endif %}">
+                                            ₦{{ transaction.amount|floatformat:2 }}
+                                        </span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted text-center">No savings transactions</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">
+                                <i class="fas fa-money-check me-2"></i>
+                                Loan Repayments
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            {% if recent_repayments %}
+                                <div class="list-group list-group-flush">
+                                    {% for repayment in recent_repayments %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <strong>Repayment</strong>
+                                            <br><small class="text-muted">{{ repayment.payment_date|date:"M d, Y" }}</small>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge bg-primary">₦{{ repayment.amount|floatformat:2 }}</span>
+                                            <br><small class="text-muted">
+                                                Interest: ₦{{ repayment.interest_amount|floatformat:2 }}<br>
+                                                Principal: ₦{{ repayment.principal_amount|floatformat:2 }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted text-center">No recent repayments</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loan History -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Loan History
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if all_loans %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Loan ID</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Application Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for loan in all_loans %}
+                                    <tr>
+                                        <td>{{ loan.loan_id }}</td>
+                                        <td>₦{{ loan.approved_amount|floatformat:2 }}</td>
+                                        <td>
+                                            <span class="badge {% if loan.status == 'active' %}bg-warning{% elif loan.status == 'completed' %}bg-success{% elif loan.status == 'rejected' %}bg-danger{% else %}bg-info{% endif %}">
+                                                {{ loan.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ loan.application_date|date:"M d, Y" }}</td>
+                                        <td>
+                                            <a href="{% url 'loans:detail' loan.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">No loan history</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

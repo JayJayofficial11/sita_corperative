@@ -1,0 +1,269 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Add Transaction - Cooperative Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    .entry-row {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background-color: #f8f9fa;
+    }
+    .balance-indicator {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    .balance-equal {
+        color: #198754;
+    }
+    .balance-unequal {
+        color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    Add New Transaction
+                </h5>
+            </div>
+            
+            <div class="card-body">
+                <form method="post" id="transactionForm">
+                    {% csrf_token %}
+                    
+                    <!-- Transaction Header -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">
+                                        <i class="fas fa-info-circle me-2"></i>Transaction Information
+                                    </h6>
+                                    {% crispy form %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Journal Entries -->
+                    <!-- <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-list me-2"></i>Journal Entries
+                                    </h6>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="addEntry()">
+                                        <i class="fas fa-plus me-1"></i>Add Entry
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div id="entries-container"> -->
+                                        <!-- Entries will be added here dynamically -->
+                                    <!-- </div> -->
+                                    
+                                    <!-- Balance Summary -->
+                                    <!-- <div class="row mt-3">
+                                        <div class="col-md-12">
+                                            <div class="card bg-info text-white">
+                                                <div class="card-body">
+                                                    <div class="row text-center">
+                                                        <div class="col-md-4">
+                                                            <h6>Total Debits</h6>
+                                                            <h4 id="totalDebits">₦0.00</h4>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <h6>Total Credits</h6>
+                                                            <h4 id="totalCredits">₦0.00</h4>
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <h6>Difference</h6>
+                                                            <h4 id="balanceDifference" class="balance-indicator">₦0.00</h4>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div> -->
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'transactions:list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Transactions
+                        </a>
+                        <!-- <div>
+                            <button type="button" class="btn btn-outline-primary" onclick="saveDraft()">
+                                <i class="fas fa-save me-2"></i>Save as Draft
+                            </button>
+                            <button type="submit" class="btn btn-success btn-lg" id="submitBtn" disabled>
+                                <i class="fas fa-check me-2"></i>Post Transaction
+                            </button>
+                        </div> -->
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Entry Template -->
+<template id="entryTemplate">
+    <div class="entry-row" data-entry-index="">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Entry <span class="entry-number"></span></h6>
+            <button type="button" class="btn btn-danger btn-sm" onclick="removeEntry(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <label class="form-label">Account</label>
+                <select class="form-select entry-account" name="entries[][account]" required>
+                    <option value="">Select Account</option>
+                    {% for account in accounts %}
+                        <option value="{{ account.pk }}">{{ account.name }} ({{ account.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Entry Type</label>
+                <select class="form-select entry-type" name="entries[][entry_type]" required>
+                    <option value="">Select Type</option>
+                    <option value="debit">Debit</option>
+                    <option value="credit">Credit</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Amount</label>
+                <div class="input-group">
+                    <span class="input-group-text">₦</span>
+                    <input type="number" class="form-control entry-amount" name="entries[][amount]" step="0.01" min="0.01" required>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Running Balance</label>
+                <input type="text" class="form-control running-balance" readonly>
+            </div>
+        </div>
+        
+        <div class="row mt-2">
+            <div class="col-12">
+                <label class="form-label">Description</label>
+                <input type="text" class="form-control entry-description" name="entries[][description]" placeholder="Entry description...">
+            </div>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let entryIndex = 0;
+
+function addEntry() {
+    const template = document.getElementById('entryTemplate');
+    const container = document.getElementById('entries-container');
+    
+    // Clone template
+    const clone = template.content.cloneNode(true);
+    const entryRow = clone.querySelector('.entry-row');
+    
+    // Update entry index and number
+    entryIndex++;
+    entryRow.setAttribute('data-entry-index', entryIndex);
+    entryRow.querySelector('.entry-number').textContent = entryIndex;
+    
+    // Update form field names
+    const inputs = entryRow.querySelectorAll('input, select');
+    inputs.forEach(input => {
+        if (input.name) {
+            input.name = input.name.replace('[]', `[${entryIndex}]`);
+        }
+    });
+    
+    // Add event listeners
+    const amountInput = entryRow.querySelector('.entry-amount');
+    const typeSelect = entryRow.querySelector('.entry-type');
+    
+    amountInput.addEventListener('input', calculateBalance);
+    typeSelect.addEventListener('change', calculateBalance);
+    
+    container.appendChild(entryRow);
+    calculateBalance();
+}
+
+function removeEntry(button) {
+    if (document.querySelectorAll('.entry-row').length > 2) {
+        button.closest('.entry-row').remove();
+        calculateBalance();
+    } else {
+        alert('A transaction must have at least 2 entries.');
+    }
+}
+
+function calculateBalance() {
+    let totalDebits = 0;
+    let totalCredits = 0;
+    
+    // Calculate totals
+    document.querySelectorAll('.entry-row').forEach(row => {
+        const amount = parseFloat(row.querySelector('.entry-amount').value) || 0;
+        const type = row.querySelector('.entry-type').value;
+        
+        if (type === 'debit') {
+            totalDebits += amount;
+        } else if (type === 'credit') {
+            totalCredits += amount;
+        }
+    });
+    
+    // Update display
+    document.getElementById('totalDebits').textContent = `₦${totalDebits.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    document.getElementById('totalCredits').textContent = `₦${totalCredits.toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    
+    const difference = totalDebits - totalCredits;
+    const differenceEl = document.getElementById('balanceDifference');
+    differenceEl.textContent = `₦${Math.abs(difference).toLocaleString('en-NG', {minimumFractionDigits: 2})}`;
+    
+    // Update balance indicator
+    if (Math.abs(difference) < 0.01) {
+        differenceEl.className = 'balance-indicator balance-equal';
+        document.getElementById('submitBtn').disabled = false;
+    } else {
+        differenceEl.className = 'balance-indicator balance-unequal';
+        document.getElementById('submitBtn').disabled = true;
+    }
+}
+
+function saveDraft() {
+    const form = document.getElementById('transactionForm');
+    const draftInput = document.createElement('input');
+    draftInput.type = 'hidden';
+    draftInput.name = 'save_draft';
+    draftInput.value = 'true';
+    form.appendChild(draftInput);
+    form.submit();
+}
+
+// Initialize with 2 entries
+document.addEventListener('DOMContentLoaded', function() {
+    addEntry(); // Debit entry
+    addEntry(); // Credit entry
+});
+</script>
+{% endblock %}

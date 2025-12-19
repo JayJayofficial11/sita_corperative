@@ -1,0 +1,653 @@
+{% extends 'base/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Data Export - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-download me-2"></i>
+                    Data Export Center
+                </h5>
+            </div>
+            
+            <div class="card-body">
+                <div class="row">
+                    <!-- Export Options -->
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-cog me-2"></i>Export Configuration
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <form id="exportForm">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="exportType" class="form-label">Data Type</label>
+                                                <select class="form-select" id="exportType" name="export_type" required>
+                                                    <option value="">Select data to export</option>
+                                                    <optgroup label="Financial Reports">
+                                                        <option value="balance_sheet">Balance Sheet</option>
+                                                        <option value="income_statement">Income Statement</option>
+                                                        <option value="cash_flow">Cash Flow Statement</option>
+                                                        <option value="trial_balance">Trial Balance</option>
+                                                    </optgroup>
+                                                    <optgroup label="Member Data">
+                                                        <option value="member_list">Member Directory</option>
+                                                        <option value="member_financial">Member Financial Summary</option>
+                                                        <option value="member_transactions">Member Transaction History</option>
+                                                    </optgroup>
+                                                    <optgroup label="Savings Data">
+                                                        <option value="savings_accounts">Savings Accounts</option>
+                                                        <option value="savings_transactions">Savings Transactions</option>
+                                                        <option value="interest_calculations">Interest Calculations</option>
+                                                    </optgroup>
+                                                    <optgroup label="Loan Data">
+                                                        <option value="loan_portfolio">Loan Portfolio</option>
+                                                        <option value="loan_applications">Loan Applications</option>
+                                                        <option value="loan_repayments">Loan Repayments</option>
+                                                        <option value="overdue_loans">Overdue Loans</option>
+                                                    </optgroup>
+                                                    <optgroup label="Transaction Data">
+                                                        <option value="all_transactions">All Transactions</option>
+                                                        <option value="daily_transactions">Daily Transactions</option>
+                                                        <option value="journal_entries">Journal Entries</option>
+                                                    </optgroup>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="exportFormat" class="form-label">Export Format</label>
+                                                <select class="form-select" id="exportFormat" name="format" required>
+                                                    <option value="">Select format</option>
+                                                    <option value="excel">Excel (.xlsx)</option>
+                                                    <option value="csv">CSV (.csv)</option>
+                                                    <option value="pdf">PDF (.pdf)</option>
+                                                    <option value="json">JSON (.json)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="startDate" class="form-label">Start Date</label>
+                                                <input type="date" class="form-control" id="startDate" name="start_date">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="endDate" class="form-label">End Date</label>
+                                                <input type="date" class="form-control" id="endDate" name="end_date">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <div class="mb-3">
+                                                <label class="form-label">Additional Options</label>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="includeHeaders" name="include_headers" checked>
+                                                    <label class="form-check-label" for="includeHeaders">
+                                                        Include column headers
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="includeMetadata" name="include_metadata">
+                                                    <label class="form-check-label" for="includeMetadata">
+                                                        Include metadata and timestamps
+                                                    </label>
+                                                </div>
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="includeFormulas" name="include_formulas">
+                                                    <label class="form-check-label" for="includeFormulas">
+                                                        Include formulas (Excel only)
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <button type="submit" class="btn btn-primary" id="exportBtn">
+                                                <i class="fas fa-download me-2"></i>Export Data
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" onclick="previewExport()">
+                                                <i class="fas fa-eye me-2"></i>Preview
+                                            </button>
+                                            <button type="button" class="btn btn-info" onclick="scheduleExport()">
+                                                <i class="fas fa-clock me-2"></i>Schedule Export
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Export Actions -->
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-bolt me-2"></i>Quick Export
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-primary" onclick="quickExport('member_list', 'excel')">
+                                        <i class="fas fa-users me-2"></i>Member List (Excel)
+                                    </button>
+                                    <button class="btn btn-outline-success" onclick="quickExport('balance_sheet', 'pdf')">
+                                        <i class="fas fa-balance-scale me-2"></i>Balance Sheet (PDF)
+                                    </button>
+                                    <button class="btn btn-outline-warning" onclick="quickExport('loan_portfolio', 'excel')">
+                                        <i class="fas fa-hand-holding-usd me-2"></i>Loan Portfolio (Excel)
+                                    </button>
+                                    <button class="btn btn-outline-info" onclick="quickExport('savings_accounts', 'csv')">
+                                        <i class="fas fa-piggy-bank me-2"></i>Savings Accounts (CSV)
+                                    </button>
+                                    <button class="btn btn-outline-secondary" onclick="quickExport('all_transactions', 'excel')">
+                                        <i class="fas fa-exchange-alt me-2"></i>All Transactions (Excel)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Export History -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-history me-2"></i>Recent Exports
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                {% for export in recent_exports %}
+                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                    <div>
+                                        <small class="fw-bold">{{ export.type|title }}</small><br>
+                                        <small class="text-muted">{{ export.created_at|timesince }} ago</small>
+                                    </div>
+                                    <div>
+                                        {% if export.status == 'completed' %}
+                                            <a href="{{ export.file_url }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        {% elif export.status == 'processing' %}
+                                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                                        {% else %}
+                                            <span class="badge bg-danger">Failed</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% empty %}
+                                <div class="text-center text-muted py-3">
+                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                    <p class="mb-0">No recent exports</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Export Templates -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-file-alt me-2"></i>Export Templates
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {% for template in export_templates %}
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card border">
+                                            <div class="card-body">
+                                                <h6 class="card-title">{{ template.name }}</h6>
+                                                <p class="card-text">{{ template.description }}</p>
+                                                <button class="btn btn-primary btn-sm" onclick="useTemplate('{{ template.id }}')">
+                                                    <i class="fas fa-play me-1"></i>Use Template
+                                                </button>
+                                                <button class="btn btn-outline-secondary btn-sm" onclick="editTemplate('{{ template.id }}')">
+                                                    <i class="fas fa-edit me-1"></i>Edit
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card border">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Monthly Financial Summary</h6>
+                                                <p class="card-text">Complete financial overview for any month</p>
+                                                <button class="btn btn-primary btn-sm" onclick="useTemplate('monthly_financial')">
+                                                    <i class="fas fa-play me-1"></i>Use Template
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card border">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Member Activity Report</h6>
+                                                <p class="card-text">Member transactions and account activity</p>
+                                                <button class="btn btn-primary btn-sm" onclick="useTemplate('member_activity')">
+                                                    <i class="fas fa-play me-1"></i>Use Template
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card border">
+                                            <div class="card-body">
+                                                <h6 class="card-title">Loan Performance Report</h6>
+                                                <p class="card-text">Loan portfolio analysis and recovery rates</p>
+                                                <button class="btn btn-primary btn-sm" onclick="useTemplate('loan_performance')">
+                                                    <i class="fas fa-play me-1"></i>Use Template
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <div class="text-center mt-3">
+                                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createTemplateModal">
+                                        <i class="fas fa-plus me-2"></i>Create New Template
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Export Status -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-tasks me-2"></i>Export Queue
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Export Type</th>
+                                                <th>Format</th>
+                                                <th>Date Range</th>
+                                                <th>Status</th>
+                                                <th>Created</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for export in export_queue %}
+                                            <tr>
+                                                <td>
+                                                    <i class="fas fa-{% if export.type == 'balance_sheet' %}balance-scale{% elif export.type == 'member_list' %}users{% elif export.type == 'loan_portfolio' %}hand-holding-usd{% else %}file{% endif %} me-2"></i>
+                                                    {{ export.get_type_display }}
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-secondary">{{ export.format|upper }}</span>
+                                                </td>
+                                                <td>
+                                                    {% if export.start_date and export.end_date %}
+                                                        {{ export.start_date|date:"M d" }} - {{ export.end_date|date:"M d, Y" }}
+                                                    {% else %}
+                                                        All time
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    {% if export.status == 'completed' %}
+                                                        <span class="badge bg-success">Completed</span>
+                                                    {% elif export.status == 'processing' %}
+                                                        <span class="badge bg-warning">
+                                                            <i class="fas fa-spinner fa-spin me-1"></i>Processing
+                                                        </span>
+                                                    {% elif export.status == 'failed' %}
+                                                        <span class="badge bg-danger">Failed</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">Queued</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ export.created_at|timesince }} ago</td>
+                                                <td>
+                                                    {% if export.status == 'completed' %}
+                                                        <a href="{{ export.file_url }}" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-download"></i>
+                                                        </a>
+                                                    {% elif export.status == 'failed' %}
+                                                        <button class="btn btn-sm btn-warning" onclick="retryExport('{{ export.id }}')">
+                                                            <i class="fas fa-redo"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                    <button class="btn btn-sm btn-danger" onclick="deleteExport('{{ export.id }}')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4">
+                                                    No exports in queue. Start by configuring an export above.
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Template Modal -->
+<div class="modal fade" id="createTemplateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Create Export Template
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="templateForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="templateName" class="form-label">Template Name</label>
+                        <input type="text" class="form-control" id="templateName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="templateDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="templateDescription" rows="3"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="templateType" class="form-label">Data Type</label>
+                                <select class="form-select" id="templateType" required>
+                                    <option value="">Select data type</option>
+                                    <option value="financial">Financial Reports</option>
+                                    <option value="members">Member Data</option>
+                                    <option value="savings">Savings Data</option>
+                                    <option value="loans">Loan Data</option>
+                                    <option value="transactions">Transactions</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="templateFormat" class="form-label">Default Format</label>
+                                <select class="form-select" id="templateFormat" required>
+                                    <option value="excel">Excel</option>
+                                    <option value="csv">CSV</option>
+                                    <option value="pdf">PDF</option>
+                                    <option value="json">JSON</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-2"></i>Create Template
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule Export Modal -->
+<div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-clock me-2"></i>Schedule Export
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="scheduleForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="scheduleType" class="form-label">Schedule Type</label>
+                        <select class="form-select" id="scheduleType" required>
+                            <option value="">Select schedule type</option>
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="scheduleTime" class="form-label">Time</label>
+                        <input type="time" class="form-control" id="scheduleTime" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="emailRecipients" class="form-label">Email Recipients</label>
+                        <input type="email" class="form-control" id="emailRecipients" placeholder="Enter email addresses separated by commas">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-clock me-2"></i>Schedule Export
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set default dates
+    const today = new Date().toISOString().split('T')[0];
+    const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    
+    document.getElementById('startDate').value = firstDay;
+    document.getElementById('endDate').value = today;
+    
+    // Export form handling
+    document.getElementById('exportForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const exportBtn = document.getElementById('exportBtn');
+        
+        // Validate form
+        if (!formData.get('export_type') || !formData.get('format')) {
+            alert('Please select both data type and format.');
+            return;
+        }
+        
+        // Update button state
+        exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        exportBtn.disabled = true;
+        
+        // Submit export request
+        fetch('{% url "reports:process_export" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', 'Export started successfully! You will be notified when it\'s ready.');
+                // Refresh export queue
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showAlert('danger', 'Export failed: ' + data.error);
+            }
+        })
+        .catch(error => {
+            showAlert('danger', 'An error occurred while starting the export.');
+        })
+        .finally(() => {
+            exportBtn.innerHTML = '<i class="fas fa-download me-2"></i>Export Data';
+            exportBtn.disabled = false;
+        });
+    });
+});
+
+function quickExport(type, format) {
+    document.getElementById('exportType').value = type;
+    document.getElementById('exportFormat').value = format;
+    document.getElementById('exportForm').dispatchEvent(new Event('submit'));
+}
+
+function previewExport() {
+    const type = document.getElementById('exportType').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (!type) {
+        alert('Please select a data type first.');
+        return;
+    }
+    
+    // Open preview in new tab
+    const params = new URLSearchParams({
+        type: type,
+        start_date: startDate,
+        end_date: endDate,
+        preview: 'true'
+    });
+    
+    window.open(`{% url 'reports:preview' %}?${params}`, '_blank');
+}
+
+function scheduleExport() {
+    const type = document.getElementById('exportType').value;
+    const format = document.getElementById('exportFormat').value;
+    
+    if (!type || !format) {
+        alert('Please select both data type and format before scheduling.');
+        return;
+    }
+    
+    $('#scheduleModal').modal('show');
+}
+
+function useTemplate(templateId) {
+    // Load template configuration
+    fetch(`{% url 'reports:get_template' %}?id=${templateId}`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('exportType').value = data.template.type;
+            document.getElementById('exportFormat').value = data.template.format;
+            showAlert('info', 'Template loaded successfully!');
+        }
+    })
+    .catch(error => {
+        showAlert('danger', 'Failed to load template.');
+    });
+}
+
+function editTemplate(templateId) {
+    window.location.href = `{% url 'reports:edit_template' %}?id=${templateId}`;
+}
+
+function retryExport(exportId) {
+    if (confirm('Retry this export?')) {
+        fetch(`{% url 'reports:retry_export' %}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ export_id: exportId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', 'Export retry initiated.');
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showAlert('danger', 'Failed to retry export.');
+            }
+        });
+    }
+}
+
+function deleteExport(exportId) {
+    if (confirm('Delete this export?')) {
+        fetch(`{% url 'reports:delete_export' %}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ export_id: exportId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('success', 'Export deleted.');
+                location.reload();
+            } else {
+                showAlert('danger', 'Failed to delete export.');
+            }
+        });
+    }
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.row');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// Auto-refresh export queue every 30 seconds
+setInterval(function() {
+    // Check for updates to export queue
+    fetch('{% url "reports:export_status" %}')
+    .then(response => response.json())
+    .then(data => {
+        if (data.has_updates) {
+            location.reload();
+        }
+    })
+    .catch(error => console.log('Status check failed'));
+}, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,525 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Transactions & Accounting Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+.stats-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    color: white;
+    padding: 2rem;
+    height: 100%;
+}
+
+.stats-card.success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+.stats-card.warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.stats-card.info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.quick-action-btn {
+    border-radius: 10px;
+    padding: 1rem;
+    margin: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.quick-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.recent-item {
+    border-left: 4px solid #667eea;
+    background: #f8f9fa;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0 8px 8px 0;
+}
+
+.chart-container {
+    background: white;
+    border-radius: 15px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.metric-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    text-align: center;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+}
+
+.positive {
+    color: #28a745;
+}
+
+.negative {
+    color: #dc3545;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 mb-0">
+                        <i class="fas fa-calculator text-primary me-3"></i>
+                        Transactions & Accounting
+                    </h1>
+                    <p class="text-muted">Manage transactions, accounts, and financial records</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary btn-lg me-2" data-bs-toggle="modal" data-bs-target="#quickTransactionModal">
+                        <i class="fas fa-bolt me-2"></i>Quick Transaction
+                    </button>
+                    <a href="{% url 'transactions:add' %}" class="btn btn-outline-primary btn-lg me-2">
+                        <i class="fas fa-plus me-2"></i>New Transaction
+                    </a>
+                    <a href="{% url 'transactions:balance_sheet' %}" class="btn btn-outline-success btn-lg">
+                        <i class="fas fa-balance-scale me-2"></i>Balance Sheet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="mb-0">{{ total_accounts }}</h3>
+                        <p class="mb-0">Active Accounts</p>
+                    </div>
+                    <div class="display-4">
+                        <i class="fas fa-list-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card success">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="mb-0">₦{{ monthly_inflow|floatformat:0 }}</h3>
+                        <p class="mb-0">Monthly Inflow</p>
+                    </div>
+                    <div class="display-4">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card warning">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="mb-0">₦{{ monthly_expenses|floatformat:0 }}</h3>
+                        <p class="mb-0">Monthly Expenses</p>
+                    </div>
+                    <div class="display-4">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card {% if net_income >= 0 %}info{% else %}warning{% endif %}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h3 class="mb-0 {% if net_income >= 0 %}positive{% else %}negative{% endif %}">
+                            ₦{{ net_income|floatformat:0 }}
+                        </h3>
+                        <p class="mb-0">Net Income</p>
+                    </div>
+                    <div class="display-4">
+                        <i class="fas {% if net_income >= 0 %}fa-chart-line{% else %}fa-chart-line-down{% endif %}"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-gradient-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-primary quick-action-btn w-100" data-bs-toggle="modal" data-bs-target="#quickTransactionModal">
+                                <i class="fas fa-zap d-block mb-2"></i>
+                                Quick Transaction
+                            </button>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="{% url 'transactions:journal' %}" class="btn btn-outline-info quick-action-btn w-100">
+                                <i class="fas fa-book d-block mb-2"></i>
+                                Journal Entry
+                            </a>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="{% url 'transactions:accounts' %}" class="btn btn-outline-secondary quick-action-btn w-100">
+                                <i class="fas fa-list-alt d-block mb-2"></i>
+                                Chart of Accounts
+                            </a>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="{% url 'transactions:statements' %}" class="btn btn-outline-success quick-action-btn w-100">
+                                <i class="fas fa-file-invoice d-block mb-2"></i>
+                                Financial Statements
+                            </a>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="{% url 'transactions:reconciliation' %}" class="btn btn-outline-warning quick-action-btn w-100">
+                                <i class="fas fa-balance-scale d-block mb-2"></i>
+                                Reconciliation
+                            </a>
+                        </div>
+                        <div class="col-md-2">
+                            <a href="{% url 'transactions:bulk_upload' %}" class="btn btn-outline-dark quick-action-btn w-100">
+                                <i class="fas fa-upload d-block mb-2"></i>
+                                Bulk Upload
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Transactions -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-gradient-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exchange-alt me-2"></i>
+                        Recent Transactions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_transactions %}
+                        {% for transaction in recent_transactions %}
+                        <div class="recent-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <a href="{% url 'transactions:detail' transaction.pk %}" class="text-decoration-none">
+                                            {{ transaction.reference_number }}
+                                        </a>
+                                    </h6>
+                                    <p class="mb-1 text-muted">{{ transaction.description|truncatechars:50 }}</p>
+                                    <small class="text-muted">{{ transaction.created_at|timesince }} ago</small>
+                                </div>
+                                <div>
+                                    <span class="badge bg-info">{{ transaction.transaction_date }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <div class="text-center mt-3">
+                            <a href="{% url 'transactions:list' %}" class="btn btn-outline-primary btn-sm">
+                                View All Transactions
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <p>No recent transactions</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Cash Flows -->
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-gradient-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-money-bill-wave me-2"></i>
+                        Recent Cash Flows
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_cash_flows %}
+                        {% for cash_flow in recent_cash_flows %}
+                        <div class="recent-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ cash_flow.description|truncatechars:30 }}</h6>
+                                    <p class="mb-1">
+                                        <span class="badge bg-{{ cash_flow.category|default:'secondary' }}">
+                                            {{ cash_flow.get_category_display }}
+                                        </span>
+                                        {{ cash_flow.subcategory }}
+                                    </p>
+                                    <small class="text-muted">{{ cash_flow.transaction_date }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="fw-bold {% if cash_flow.category == 'income' %}positive{% else %}negative{% endif %}">
+                                        {% if cash_flow.category == 'income' %}+{% else %}-{% endif %}₦{{ cash_flow.amount|floatformat:0 }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <div class="text-center mt-3">
+                            <a href="{% url 'transactions:cash_flow' %}" class="btn btn-outline-success btn-sm">
+                                View All Cash Flows
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <p>No recent cash flows</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts and Metrics -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="chart-container">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Monthly Cash Flow
+                </h5>
+                <canvas id="cashFlowChart" height="200"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="chart-container">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Financial Health Metrics
+                </h5>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="metric-card">
+                            <h4 class="mb-1">{{ total_transactions }}</h4>
+                            <small class="text-muted">Total Transactions</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="metric-card">
+                            <h4 class="mb-1 {% if net_income >= 0 %}positive{% else %}negative{% endif %}">
+                                {% if net_income >= 0 %}+{% endif %}{{ net_income|floatformat:1 }}%
+                            </h4>
+                            <small class="text-muted">Profit Margin</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar bg-success" 
+                                 style="width: {% widthratio monthly_inflow monthly_inflow|add:monthly_outflow 100 %}%">
+                                Inflow
+                            </div>
+                            <div class="progress-bar bg-danger" 
+                                 style="width: {% widthratio monthly_outflow monthly_inflow|add:monthly_outflow 100 %}%">
+                                Outflow
+                            </div>
+                        </div>
+                        <small class="text-muted">Inflow vs Outflow Ratio</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Transaction Modal -->
+<div class="modal fade" id="quickTransactionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-bolt me-2"></i>
+                    Quick Transaction
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="quick-transaction-form" method="post" action="{% url 'transactions:quick' %}" class="modal-form">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Transaction Type</label>
+                                <select class="form-select" name="transaction_type" required>
+                                    <option value="">Select Type</option>
+                                    <option value="member_savings_deposit">Savings Deposit</option>
+                                    <option value="member_savings_withdrawal">Savings Withdrawal</option>
+                                    <option value="loan_repayment">Loan Repayment</option>
+                                    <option value="membership_fee">Membership Fee</option>
+                                    <option value="expense">General Expense</option>
+                                    <option value="income">General Income</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Amount (₦)</label>
+                                <input type="number" class="form-control currency-input" name="amount" step="0.01" min="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Member (if applicable)</label>
+                                <select class="form-select" name="member">
+                                    <option value="">Select Member</option>
+                                    <!-- Members would be loaded dynamically -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Transaction Date</label>
+                                <input type="date" class="form-control" name="transaction_date" value="{{ today }}" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="process-quick-transaction" class="btn btn-primary">
+                    <i class="fas fa-check me-2"></i>Process Transaction
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Cash Flow Chart
+    const cashFlowData = {{ monthly_cash_flow|safe }};
+    if (cashFlowData.length > 0) {
+        const ctx = document.getElementById('cashFlowChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: cashFlowData.map(item => item.category.charAt(0).toUpperCase() + item.category.slice(1)),
+                datasets: [{
+                    data: cashFlowData.map(item => item.total),
+                    backgroundColor: [
+                        '#28a745',
+                        '#dc3545',
+                        '#ffc107',
+                        '#17a2b8',
+                        '#6f42c1'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ₦' + context.parsed.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Quick Transaction Processing
+    document.getElementById('process-quick-transaction').addEventListener('click', function() {
+        const form = document.getElementById('quick-transaction-form');
+        const formData = new FormData(form);
+        
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        this.disabled = true;
+        
+        // Here you would submit the form via AJAX
+        setTimeout(() => {
+            bootstrap.Modal.getInstance(document.getElementById('quickTransactionModal')).hide();
+            showAlert('success', 'Transaction processed successfully!');
+            location.reload(); // Refresh to show updated data
+        }, 2000);
+    });
+
+    // Currency formatting
+    document.querySelectorAll('.currency-input').forEach(input => {
+        input.addEventListener('input', function() {
+            let value = this.value.replace(/,/g, '');
+            if (!isNaN(value) && value !== '') {
+                this.setAttribute('data-value', value);
+            }
+        });
+    });
+
+    // Auto-refresh every 60 seconds
+    setInterval(function() {
+        // Could implement real-time updates here
+        console.log('Auto-refresh triggered');
+    }, 60000);
+});
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

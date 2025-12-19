@@ -1,0 +1,242 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Loan Calculator{% endblock %}
+
+{% block extra_css %}
+<style>
+.calculator-container {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    padding: 2rem;
+}
+
+.calculator-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 1.5rem;
+    border-radius: 15px 15px 0 0;
+    margin: -2rem -2rem 2rem -2rem;
+}
+
+.result-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    border-left: 4px solid #28a745;
+}
+
+.calculation-item {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="calculator-container">
+                <div class="calculator-header">
+                    <h2 class="mb-0">
+                        <i class="fas fa-calculator me-3"></i>
+                        Loan Calculator
+                    </h2>
+                    <p class="mb-0 mt-2">Calculate your loan payments and total interest</p>
+                </div>
+
+                <div class="row">
+                    <!-- Calculator Form -->
+                    <div class="col-md-6">
+                        <form id="calculator-form">
+                            <div class="mb-3">
+                                <label for="loan_product" class="form-label">Loan Product</label>
+                                <select name="loan_product" id="loan_product" class="form-select" required>
+                                    <option value="">Select Loan Product</option>
+                                    {% for product in products %}
+                                    <option value="{{ product.id }}" 
+                                            data-min="{{ product.minimum_amount }}" 
+                                            data-max="{{ product.maximum_amount }}"
+                                            data-rate="{{ product.interest_rate }}"
+                                            data-max-tenure="{{ product.maximum_tenure_months }}">
+                                        {{ product.name }} ({{ product.interest_rate }}% p.a.)
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="amount" class="form-label">Loan Amount (₦)</label>
+                                <input type="number" name="amount" id="amount" class="form-control" 
+                                       step="0.01" min="1" placeholder="Enter loan amount" required>
+                                <div class="form-text" id="amount-range" style="display: none;">
+                                    Amount should be between <span id="min-amount"></span> and <span id="max-amount"></span>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="tenure" class="form-label">Loan Tenure (Months)</label>
+                                <input type="number" name="tenure" id="tenure" class="form-control" 
+                                       min="1" max="60" placeholder="Enter tenure in months" required>
+                                <div class="form-text" id="tenure-range" style="display: none;">
+                                    Maximum tenure: <span id="max-tenure"></span> months
+                                </div>
+                            </div>
+
+                            <div class="d-grid">
+                                <button type="button" class="btn btn-primary btn-lg" onclick="calculateLoan()">
+                                    <i class="fas fa-calculator me-2"></i>Calculate
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="text-center mt-4">
+                            <a href="{% url 'loans:apply' %}" class="btn btn-success">
+                                <i class="fas fa-hand-holding-usd me-2"></i>
+                                Apply for Loan
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Results -->
+                    <div class="col-md-6">
+                        <div class="result-card" id="results" style="display: none;">
+                            <h5 class="mb-4">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Calculation Results
+                            </h5>
+
+                            <div class="calculation-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted">Monthly Payment:</span>
+                                    <h5 class="text-primary mb-0" id="monthly-payment">₦0.00</h5>
+                                </div>
+                            </div>
+
+                            <div class="calculation-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted">Total Amount Payable:</span>
+                                    <h5 class="text-success mb-0" id="total-payment">₦0.00</h5>
+                                </div>
+                            </div>
+
+                            <div class="calculation-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted">Total Interest:</span>
+                                    <h5 class="text-warning mb-0" id="total-interest">₦0.00</h5>
+                                </div>
+                            </div>
+
+                            <div class="calculation-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted">Processing Fee:</span>
+                                    <h5 class="text-info mb-0" id="processing-fee">₦0.00</h5>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="alert alert-danger" id="error-message" style="display: none;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span id="error-text"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Currency formatting function
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-NG', {
+        style: 'currency',
+        currency: 'NGN',
+        minimumFractionDigits: 2
+    }).format(amount);
+}
+
+// Update product constraints
+document.getElementById('loan_product').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    if (option.value) {
+        const minAmount = option.dataset.min;
+        const maxAmount = option.dataset.max;
+        const maxTenure = option.dataset.maxTenure;
+        
+        // Update amount constraints
+        document.getElementById('amount').min = minAmount;
+        document.getElementById('amount').max = maxAmount;
+        document.getElementById('min-amount').textContent = formatCurrency(minAmount);
+        document.getElementById('max-amount').textContent = formatCurrency(maxAmount);
+        document.getElementById('amount-range').style.display = 'block';
+        
+        // Update tenure constraints
+        document.getElementById('tenure').max = maxTenure;
+        document.getElementById('max-tenure').textContent = maxTenure;
+        document.getElementById('tenure-range').style.display = 'block';
+    } else {
+        document.getElementById('amount-range').style.display = 'none';
+        document.getElementById('tenure-range').style.display = 'none';
+    }
+    
+    // Recalculate if form is complete
+    calculateLoan();
+});
+
+// Real-time calculation
+function calculateLoan() {
+    const amount = document.getElementById('amount').value;
+    const productId = document.getElementById('loan_product').value;
+    const tenure = document.getElementById('tenure').value;
+    
+    // Hide previous results and errors
+    document.getElementById('results').style.display = 'none';
+    document.getElementById('error-message').style.display = 'none';
+    
+    if (amount && productId && tenure && amount > 0 && tenure > 0) {
+        // Make AJAX request
+        fetch(`{% url 'loans:calculate_ajax' %}?amount=${amount}&product_id=${productId}&tenure=${tenure}`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update results display
+                document.getElementById('monthly-payment').textContent = formatCurrency(data.monthly_payment);
+                document.getElementById('total-payment').textContent = formatCurrency(data.total_payment);
+                document.getElementById('total-interest').textContent = formatCurrency(data.total_interest);
+                // Show results
+                document.getElementById('results').style.display = 'block';
+            } else {
+                // Show error
+                document.getElementById('error-text').textContent = data.error;
+                document.getElementById('error-message').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('AJAX error:', error);
+            document.getElementById('error-text').textContent = 'Network error occurred. Please try again.';
+            document.getElementById('error-message').style.display = 'block';
+        });
+    }
+}
+
+// Event listeners for real-time calculation
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('amount').addEventListener('input', calculateLoan);
+    document.getElementById('tenure').addEventListener('input', calculateLoan);
+});
+</script>
+{% endblock %}

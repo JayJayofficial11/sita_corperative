@@ -1,0 +1,735 @@
+{% extends 'base/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Member Reports - Cooperative Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    Member Reports & Analytics
+                </h5>
+                <div>
+                    <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#filterModal">
+                        <i class="fas fa-filter me-1"></i>Filter
+                    </button>
+                    <button class="btn btn-light btn-sm" onclick="exportReport()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <button class="btn btn-light btn-sm" onclick="printReport()">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <!-- Membership Overview -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ total_members }}</h4>
+                                <small>Total Members</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ active_members }}</h4>
+                                <small>Active Members</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ new_members_month }}</h4>
+                                <small>New This Month</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h4>{{ retention_rate }}%</h4>
+                                <small>Retention Rate</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts Section -->
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-chart-line me-2"></i>Membership Growth Trends
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="membershipChart" height="100"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="card-title mb-0">
+                                    <i class="fas fa-chart-pie me-2"></i>Member Distribution
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="distributionChart" height="200"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Detailed Reports Tabs -->
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="reportsTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="demographic-tab" data-bs-toggle="tab" data-bs-target="#demographic-report" type="button" role="tab">
+                                    <i class="fas fa-chart-bar me-1"></i>Demographics
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity-report" type="button" role="tab">
+                                    <i class="fas fa-chart-line me-1"></i>Activity
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="financial-tab" data-bs-toggle="tab" data-bs-target="#financial-report" type="button" role="tab">
+                                    <i class="fas fa-dollar-sign me-1"></i>Financial
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="engagement-tab" data-bs-toggle="tab" data-bs-target="#engagement-report" type="button" role="tab">
+                                    <i class="fas fa-handshake me-1"></i>Engagement
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="reportsTabContent">
+                            <!-- Demographics Report -->
+                            <div class="tab-pane fade show active" id="demographic-report" role="tabpanel">
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h6 class="card-title mb-0">Age Distribution</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <canvas id="ageChart" height="200"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h6 class="card-title mb-0">Gender Distribution</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <canvas id="genderChart" height="200"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Category</th>
+                                                <th>Count</th>
+                                                <th>Percentage</th>
+                                                <th>Avg Age</th>
+                                                <th>Avg Tenure (Years)</th>
+                                                <th>Avg Account Balance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>Male Members</strong></td>
+                                                <td class="text-center">{{ male_count }}</td>
+                                                <td class="text-center">{{ male_percentage }}%</td>
+                                                <td class="text-center">{{ male_avg_age }}</td>
+                                                <td class="text-center">{{ male_avg_tenure }}</td>
+                                                <td class="text-end">₦{{ male_avg_balance|floatformat:2 }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Female Members</strong></td>
+                                                <td class="text-center">{{ female_count }}</td>
+                                                <td class="text-center">{{ female_percentage }}%</td>
+                                                <td class="text-center">{{ female_avg_age }}</td>
+                                                <td class="text-center">{{ female_avg_tenure }}</td>
+                                                <td class="text-end">₦{{ female_avg_balance|floatformat:2 }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Youth (18-35)</strong></td>
+                                                <td class="text-center">{{ youth_count }}</td>
+                                                <td class="text-center">{{ youth_percentage }}%</td>
+                                                <td class="text-center">{{ youth_avg_age }}</td>
+                                                <td class="text-center">{{ youth_avg_tenure }}</td>
+                                                <td class="text-end">₦{{ youth_avg_balance|floatformat:2 }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Adults (36-59)</strong></td>
+                                                <td class="text-center">{{ adult_count }}</td>
+                                                <td class="text-center">{{ adult_percentage }}%</td>
+                                                <td class="text-center">{{ adult_avg_age }}</td>
+                                                <td class="text-center">{{ adult_avg_tenure }}</td>
+                                                <td class="text-end">₦{{ adult_avg_balance|floatformat:2 }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Seniors (60+)</strong></td>
+                                                <td class="text-center">{{ senior_count }}</td>
+                                                <td class="text-center">{{ senior_percentage }}%</td>
+                                                <td class="text-center">{{ senior_avg_age }}</td>
+                                                <td class="text-center">{{ senior_avg_tenure }}</td>
+                                                <td class="text-end">₦{{ senior_avg_balance|floatformat:2 }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Activity Report -->
+                            <div class="tab-pane fade" id="activity-report" role="tabpanel">
+                                <div class="row mb-4">
+                                    <div class="col-md-3">
+                                        <div class="card bg-success text-white">
+                                            <div class="card-body text-center">
+                                                <h4>{{ active_today }}</h4>
+                                                <small>Active Today</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-primary text-white">
+                                            <div class="card-body text-center">
+                                                <h4>{{ active_week }}</h4>
+                                                <small>Active This Week</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-warning text-white">
+                                            <div class="card-body text-center">
+                                                <h4>{{ active_month }}</h4>
+                                                <small>Active This Month</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-info text-white">
+                                            <div class="card-body text-center">
+                                                <h4>{{ avg_login_frequency }}</h4>
+                                                <small>Avg Login/Month</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Member</th>
+                                                <th>Last Login</th>
+                                                <th>Login Frequency</th>
+                                                <th>Transactions (30d)</th>
+                                                <th>Loans Active</th>
+                                                <th>Savings Activity</th>
+                                                <th>Engagement Score</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for member in member_activity %}
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="{{ member.user.profile.avatar.url|default:'/static/img/default-avatar.png' }}" 
+                                                             class="rounded-circle me-2" width="32" height="32">
+                                                        <div>
+                                                            <strong>{{ member.user.get_full_name }}</strong><br>
+                                                            <small class="text-muted">{{ member.membership_number }}</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    {% if member.user.last_login %}
+                                                        {{ member.user.last_login|timesince }} ago
+                                                    {% else %}
+                                                        Never
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-center">{{ member.login_frequency }}/month</td>
+                                                <td class="text-center">{{ member.transaction_count }}</td>
+                                                <td class="text-center">{{ member.active_loans_count }}</td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-{% if member.savings_activity == 'High' %}success{% elif member.savings_activity == 'Medium' %}warning{% else %}secondary{% endif %}">
+                                                        {{ member.savings_activity }}
+                                                    </span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <div class="d-flex align-items-center justify-content-center">
+                                                        <div class="progress me-2" style="width: 60px; height: 8px;">
+                                                            <div class="progress-bar bg-{% if member.engagement_score >= 80 %}success{% elif member.engagement_score >= 60 %}warning{% else %}danger{% endif %}" 
+                                                                 style="width: {{ member.engagement_score }}%"></div>
+                                                        </div>
+                                                        <small class="{% if member.engagement_score >= 80 %}text-success{% elif member.engagement_score >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                                            {{ member.engagement_score }}%
+                                                        </small>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="viewMemberProfile('{{ member.id }}')" title="View Profile">
+                                                        <i class="fas fa-user"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="8" class="text-center text-muted py-4">
+                                                    No member activity data found.
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Financial Report -->
+                            <div class="tab-pane fade" id="financial-report" role="tabpanel">
+                                <div class="row mb-4">
+                                    <div class="col-md-4">
+                                        <div class="card bg-success text-white">
+                                            <div class="card-body text-center">
+                                                <h4>₦{{ total_savings|floatformat:0 }}</h4>
+                                                <small>Total Savings</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-primary text-white">
+                                            <div class="card-body text-center">
+                                                <h4>₦{{ total_shares|floatformat:0 }}</h4>
+                                                <small>Total Shares</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="card bg-warning text-white">
+                                            <div class="card-body text-center">
+                                                <h4>₦{{ outstanding_loans|floatformat:0 }}</h4>
+                                                <small>Outstanding Loans</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Member</th>
+                                                <th>Savings Balance</th>
+                                                <th>Shares</th>
+                                                <th>Loan Balance</th>
+                                                <th>Net Worth</th>
+                                                <th>Monthly Contribution</th>
+                                                <th>Credit Score</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for member in member_financial %}
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="{{ member.user.profile.avatar.url|default:'/static/img/default-avatar.png' }}" 
+                                                             class="rounded-circle me-2" width="32" height="32">
+                                                        {{ member.user.get_full_name }}
+                                                    </div>
+                                                </td>
+                                                <td class="text-end">₦{{ member.savings_balance|floatformat:2 }}</td>
+                                                <td class="text-end">₦{{ member.shares_value|floatformat:2 }}</td>
+                                                <td class="text-end">₦{{ member.loan_balance|floatformat:2 }}</td>
+                                                <td class="text-end">
+                                                    <strong class="{% if member.net_worth >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                        ₦{{ member.net_worth|floatformat:2 }}
+                                                    </strong>
+                                                </td>
+                                                <td class="text-end">₦{{ member.monthly_contribution|floatformat:2 }}</td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-{% if member.credit_score >= 80 %}success{% elif member.credit_score >= 60 %}warning{% else %}danger{% endif %}">
+                                                        {{ member.credit_score }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="viewFinancialDetail('{{ member.id }}')" title="Financial Details">
+                                                        <i class="fas fa-chart-line"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="8" class="text-center text-muted py-4">
+                                                    No financial data found.
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Engagement Report -->
+                            <div class="tab-pane fade" id="engagement-report" role="tabpanel">
+                                <div class="row mb-4">
+                                    <div class="col-md-3">
+                                        <div class="card bg-success text-white">
+                                            <div class="card-body text-center">
+                                                <h4>{{ highly_engaged }}</h4>
+                                                <small>Highly Engaged</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-warning text-white">
+                                            <div class="card-body text-center">
+                                                <h4>{{ moderately_engaged }}</h4>
+                                                <small>Moderately Engaged</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-danger text-white">
+                                            <div class="card-body text-center">
+                                                <h4>{{ low_engaged }}</h4>
+                                                <small>Low Engagement</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="card bg-secondary text-white">
+                                            <div class="card-body text-center">
+                                                <h4>{{ inactive_members }}</h4>
+                                                <small>Inactive</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Member</th>
+                                                <th>Join Date</th>
+                                                <th>Last Activity</th>
+                                                <th>Services Used</th>
+                                                <th>Meeting Attendance</th>
+                                                <th>Payment History</th>
+                                                <th>Engagement Level</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for member in member_engagement %}
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        <img src="{{ member.user.profile.avatar.url|default:'/static/img/default-avatar.png' }}" 
+                                                             class="rounded-circle me-2" width="32" height="32">
+                                                        <div>
+                                                            <strong>{{ member.user.get_full_name }}</strong><br>
+                                                            <small class="text-muted">{{ member.membership_number }}</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>{{ member.date_joined|date:"M d, Y" }}</td>
+                                                <td>
+                                                    {% if member.last_activity %}
+                                                        {{ member.last_activity|timesince }} ago
+                                                    {% else %}
+                                                        Never
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        {% if member.uses_savings %}<span class="badge bg-success">Savings</span>{% endif %}
+                                                        {% if member.uses_loans %}<span class="badge bg-primary">Loans</span>{% endif %}
+                                                        {% if member.uses_shares %}<span class="badge bg-info">Shares</span>{% endif %}
+                                                    </div>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="{% if member.attendance_rate >= 80 %}text-success{% elif member.attendance_rate >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                                                        {{ member.attendance_rate }}%
+                                                    </span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-{% if member.payment_score >= 90 %}success{% elif member.payment_score >= 70 %}warning{% else %}danger{% endif %}">
+                                                        {{ member.payment_score }}%
+                                                    </span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-{% if member.engagement_level == 'High' %}success{% elif member.engagement_level == 'Medium' %}warning{% else %}danger{% endif %}">
+                                                        {{ member.engagement_level }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="viewMemberProfile('{{ member.id }}')" title="View Profile">
+                                                            <i class="fas fa-user"></i>
+                                                        </button>
+                                                        <button class="btn btn-sm btn-outline-success" onclick="contactMember('{{ member.id }}')" title="Contact">
+                                                            <i class="fas fa-envelope"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% empty %}
+                                            <tr>
+                                                <td colspan="8" class="text-center text-muted py-4">
+                                                    No member engagement data found.
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-filter me-2"></i>Filter Member Reports
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="get">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="period" class="form-label">Period</label>
+                        <select class="form-select" name="period">
+                            <option value="">All Time</option>
+                            <option value="today" {% if request.GET.period == 'today' %}selected{% endif %}>Today</option>
+                            <option value="week" {% if request.GET.period == 'week' %}selected{% endif %}>This Week</option>
+                            <option value="month" {% if request.GET.period == 'month' %}selected{% endif %}>This Month</option>
+                            <option value="quarter" {% if request.GET.period == 'quarter' %}selected{% endif %}>This Quarter</option>
+                            <option value="year" {% if request.GET.period == 'year' %}selected{% endif %}>This Year</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="membership_status" class="form-label">Membership Status</label>
+                        <select class="form-select" name="membership_status">
+                            <option value="">All Members</option>
+                            <option value="active" {% if request.GET.membership_status == 'active' %}selected{% endif %}>Active</option>
+                            <option value="inactive" {% if request.GET.membership_status == 'inactive' %}selected{% endif %}>Inactive</option>
+                            <option value="suspended" {% if request.GET.membership_status == 'suspended' %}selected{% endif %}>Suspended</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="age_group" class="form-label">Age Group</label>
+                        <select class="form-select" name="age_group">
+                            <option value="">All Ages</option>
+                            <option value="youth" {% if request.GET.age_group == 'youth' %}selected{% endif %}>Youth (18-35)</option>
+                            <option value="adult" {% if request.GET.age_group == 'adult' %}selected{% endif %}>Adult (36-59)</option>
+                            <option value="senior" {% if request.GET.age_group == 'senior' %}selected{% endif %}>Senior (60+)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="engagement_level" class="form-label">Engagement Level</label>
+                        <select class="form-select" name="engagement_level">
+                            <option value="">All Engagement Levels</option>
+                            <option value="high" {% if request.GET.engagement_level == 'high' %}selected{% endif %}>High</option>
+                            <option value="medium" {% if request.GET.engagement_level == 'medium' %}selected{% endif %}>Medium</option>
+                            <option value="low" {% if request.GET.engagement_level == 'low' %}selected{% endif %}>Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-2"></i>Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/chart.min.js' %}"></script>
+<script>
+// Membership Growth Chart
+const membershipCtx = document.getElementById('membershipChart').getContext('2d');
+const membershipChart = new Chart(membershipCtx, {
+    type: 'line',
+    data: {
+        labels: {{ chart_labels|safe }},
+        datasets: [{
+            label: 'New Members',
+            data: {{ new_members_data|safe }},
+            borderColor: 'rgb(25, 135, 84)',
+            backgroundColor: 'rgba(25, 135, 84, 0.1)',
+            tension: 0.1
+        }, {
+            label: 'Total Members',
+            data: {{ total_members_data|safe }},
+            borderColor: 'rgb(13, 110, 253)',
+            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Member Distribution Chart
+const distributionCtx = document.getElementById('distributionChart').getContext('2d');
+const distributionChart = new Chart(distributionCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Active', 'Inactive', 'New', 'Suspended'],
+        datasets: [{
+            data: {{ member_status_distribution|safe }},
+            backgroundColor: [
+                'rgb(25, 135, 84)',
+                'rgb(108, 117, 125)',
+                'rgb(255, 193, 7)',
+                'rgb(220, 53, 69)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Age Distribution Chart
+const ageCtx = document.getElementById('ageChart').getContext('2d');
+const ageChart = new Chart(ageCtx, {
+    type: 'bar',
+    data: {
+        labels: ['18-25', '26-35', '36-45', '46-55', '56-65', '65+'],
+        datasets: [{
+            label: 'Number of Members',
+            data: {{ age_distribution|safe }},
+            backgroundColor: 'rgba(13, 110, 253, 0.8)'
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Gender Distribution Chart
+const genderCtx = document.getElementById('genderChart').getContext('2d');
+const genderChart = new Chart(genderCtx, {
+    type: 'pie',
+    data: {
+        labels: ['Male', 'Female', 'Other'],
+        datasets: [{
+            data: {{ gender_distribution|safe }},
+            backgroundColor: [
+                'rgb(13, 110, 253)',
+                'rgb(255, 193, 7)',
+                'rgb(25, 135, 84)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+function viewMemberProfile(memberId) {
+    window.location.href = '/members/' + memberId + '/';
+}
+
+function viewFinancialDetail(memberId) {
+    window.location.href = '/members/' + memberId + '/financial/';
+}
+
+function contactMember(memberId) {
+    window.location.href = '/communications/send/?member=' + memberId;
+}
+
+function exportReport() {
+    const activeTab = document.querySelector('.nav-link.active').getAttribute('data-bs-target');
+    let reportType = 'demographic';
+    
+    if (activeTab === '#demographic-report') reportType = 'demographic';
+    else if (activeTab === '#activity-report') reportType = 'activity';
+    else if (activeTab === '#financial-report') reportType = 'financial';
+    else if (activeTab === '#engagement-report') reportType = 'engagement';
+    
+    window.location.href = `{% url 'reports:export' %}?type=member_${reportType}&format=excel`;
+}
+
+function printReport() {
+    window.print();
+}
+
+function showAlert(type, message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.row');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}
