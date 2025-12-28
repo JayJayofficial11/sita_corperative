@@ -92,7 +92,7 @@ WSGI_APPLICATION = 'cooperative_management.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL')
+        default=os.environ.get('postgresql://postgres:vooFacFxrrYqjlQZfeUfpmjblCOduyuQ@postgres.railway.internal:5432/railway')
     )
 }
 
